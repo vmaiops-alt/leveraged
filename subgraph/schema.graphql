@@ -1,0 +1,274 @@
+# LEVERAGED Protocol Subgraph Schema
+
+# ============ Core Entities ============
+
+type Protocol @entity {
+  id: ID! # "leveraged"
+  totalValueLocked: BigDecimal!
+  totalPositions: BigInt!
+  totalActivePositions: BigInt!
+  totalFeesCollected: BigDecimal!
+  totalVolumeTraded: BigDecimal!
+  totalLiquidations: BigInt!
+  
+  # Lending Pool Stats
+  totalDeposited: BigDecimal!
+  totalBorrowed: BigDecimal!
+  utilizationRate: BigDecimal!
+  currentAPY: BigDecimal!
+  
+  # Staking Stats
+  totalStaked: BigDecimal!
+  stakingAPR: BigDecimal!
+  
+  # Timestamps
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+type User @entity {
+  id: ID! # User address
+  positions: [Position!]! @derivedFrom(field: "user")
+  totalDeposited: BigDecimal!
+  totalPnL: BigDecimal!
+  totalFeesPaid: BigDecimal!
+  positionCount: BigInt!
+  activePositionCount: BigInt!
+  
+  # Lending
+  lendingDeposit: BigDecimal!
+  lendingEarnings: BigDecimal!
+  
+  # Staking
+  stakedAmount: BigDecimal!
+  stakingRewards: BigDecimal!
+  feeDiscount: BigInt! # BPS
+  
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+type Position @entity {
+  id: ID! # positionId
+  user: User!
+  asset: Asset!
+  
+  # Position Details
+  depositAmount: BigDecimal!
+  leverageMultiplier: BigInt! # BPS (10000 = 1x)
+  totalExposure: BigDecimal!
+  borrowedAmount: BigDecimal!
+  entryPrice: BigDecimal!
+  exitPrice: BigDecimal
+  
+  # Status
+  isActive: Boolean!
+  healthFactor: BigDecimal!
+  currentPnL: BigDecimal!
+  currentPnLPercent: BigDecimal!
+  
+  # Fees
+  entryFee: BigDecimal!
+  exitFee: BigDecimal
+  platformFee: BigDecimal
+  
+  # Timestamps
+  openedAt: BigInt!
+  closedAt: BigInt
+  
+  # Transaction hashes
+  openTxHash: Bytes!
+  closeTxHash: Bytes
+  
+  # Related events
+  collateralAdditions: [CollateralAddition!]! @derivedFrom(field: "position")
+}
+
+type Asset @entity {
+  id: ID! # Asset address
+  symbol: String!
+  name: String!
+  decimals: Int!
+  
+  # Price
+  currentPrice: BigDecimal!
+  priceUpdatedAt: BigInt!
+  
+  # Stats
+  totalExposure: BigDecimal!
+  positionCount: BigInt!
+  activePositionCount: BigInt!
+  
+  # Supported
+  isSupported: Boolean!
+}
+
+# ============ Event Entities ============
+
+type PositionOpened @entity {
+  id: ID! # txHash-logIndex
+  position: Position!
+  user: User!
+  asset: Asset!
+  depositAmount: BigDecimal!
+  leverage: BigInt!
+  entryPrice: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+type PositionClosed @entity {
+  id: ID! # txHash-logIndex
+  position: Position!
+  user: User!
+  exitPrice: BigDecimal!
+  valueIncrease: BigDecimal!
+  platformFee: BigDecimal!
+  userPayout: BigDecimal!
+  pnl: BigDecimal!
+  pnlPercent: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+type PositionLiquidated @entity {
+  id: ID! # txHash-logIndex
+  position: Position!
+  user: User!
+  liquidator: Bytes!
+  exitPrice: BigDecimal!
+  debtRepaid: BigDecimal!
+  collateralSeized: BigDecimal!
+  liquidatorBonus: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+type CollateralAddition @entity {
+  id: ID! # txHash-logIndex
+  position: Position!
+  user: User!
+  amount: BigDecimal!
+  newHealthFactor: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+type FeeCollection @entity {
+  id: ID! # txHash-logIndex
+  token: Bytes!
+  amount: BigDecimal!
+  feeType: String! # valueIncrease, performance, entry, liquidation
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+type FeeDistribution @entity {
+  id: ID! # txHash-logIndex
+  toTreasury: BigDecimal!
+  toInsurance: BigDecimal!
+  toStakers: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+# ============ Lending Pool Entities ============
+
+type LendingDeposit @entity {
+  id: ID! # txHash-logIndex
+  user: User!
+  amount: BigDecimal!
+  shares: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+type LendingWithdraw @entity {
+  id: ID! # txHash-logIndex
+  user: User!
+  amount: BigDecimal!
+  shares: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+# ============ Staking Entities ============
+
+type Stake @entity {
+  id: ID! # txHash-logIndex
+  user: User!
+  amount: BigDecimal!
+  newTotalStaked: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+type Unstake @entity {
+  id: ID! # txHash-logIndex
+  user: User!
+  amount: BigDecimal!
+  newTotalStaked: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+type RewardClaim @entity {
+  id: ID! # txHash-logIndex
+  user: User!
+  amount: BigDecimal!
+  timestamp: BigInt!
+  txHash: Bytes!
+  blockNumber: BigInt!
+}
+
+# ============ Analytics Entities ============
+
+type DailyStats @entity {
+  id: ID! # timestamp / 86400 * 86400
+  date: BigInt!
+  
+  # Volume
+  totalVolume: BigDecimal!
+  positionsOpened: BigInt!
+  positionsClosed: BigInt!
+  liquidations: BigInt!
+  
+  # TVL
+  tvlStart: BigDecimal!
+  tvlEnd: BigDecimal!
+  
+  # Fees
+  feesCollected: BigDecimal!
+  
+  # Lending
+  depositsVolume: BigDecimal!
+  withdrawsVolume: BigDecimal!
+  borrowsVolume: BigDecimal!
+  
+  # Prices (end of day)
+  btcPrice: BigDecimal!
+  ethPrice: BigDecimal!
+  bnbPrice: BigDecimal!
+}
+
+type HourlyStats @entity {
+  id: ID! # timestamp / 3600 * 3600
+  timestamp: BigInt!
+  
+  volume: BigDecimal!
+  positionsOpened: BigInt!
+  positionsClosed: BigInt!
+  liquidations: BigInt!
+  tvl: BigDecimal!
+  feesCollected: BigDecimal!
+}

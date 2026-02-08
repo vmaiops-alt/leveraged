@@ -1,0 +1,123 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  # LeveragedVault
+  - kind: ethereum
+    name: LeveragedVault
+    network: bsc # Change to bsc-testnet for testnet
+    source:
+      address: "0x0000000000000000000000000000000000000000" # UPDATE AFTER DEPLOY
+      abi: LeveragedVault
+      startBlock: 0 # UPDATE AFTER DEPLOY
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Protocol
+        - User
+        - Position
+        - Asset
+        - PositionOpened
+        - PositionClosed
+        - PositionLiquidated
+        - CollateralAddition
+        - DailyStats
+        - HourlyStats
+      abis:
+        - name: LeveragedVault
+          file: ../contracts/abis/LeveragedVault.json
+      eventHandlers:
+        - event: PositionOpened(indexed uint256,indexed address,address,uint256,uint256,uint256)
+          handler: handlePositionOpened
+        - event: PositionClosed(indexed uint256,indexed address,uint256,uint256,uint256,uint256)
+          handler: handlePositionClosed
+        - event: PositionLiquidated(indexed uint256,indexed address,address,uint256)
+          handler: handlePositionLiquidated
+        - event: CollateralAdded(indexed uint256,uint256)
+          handler: handleCollateralAdded
+      file: ./src/vault.ts
+
+  # LendingPool
+  - kind: ethereum
+    name: LendingPool
+    network: bsc
+    source:
+      address: "0x0000000000000000000000000000000000000000" # UPDATE AFTER DEPLOY
+      abi: LendingPool
+      startBlock: 0 # UPDATE AFTER DEPLOY
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Protocol
+        - User
+        - LendingDeposit
+        - LendingWithdraw
+      abis:
+        - name: LendingPool
+          file: ../contracts/abis/LendingPool.json
+      eventHandlers:
+        - event: Deposited(indexed address,uint256,uint256)
+          handler: handleDeposited
+        - event: Withdrawn(indexed address,uint256,uint256)
+          handler: handleWithdrawn
+      file: ./src/lending.ts
+
+  # FeeCollector
+  - kind: ethereum
+    name: FeeCollector
+    network: bsc
+    source:
+      address: "0x0000000000000000000000000000000000000000" # UPDATE AFTER DEPLOY
+      abi: FeeCollector
+      startBlock: 0 # UPDATE AFTER DEPLOY
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Protocol
+        - FeeCollection
+        - FeeDistribution
+      abis:
+        - name: FeeCollector
+          file: ../contracts/abis/FeeCollector.json
+      eventHandlers:
+        - event: FeesCollected(indexed address,uint256,string)
+          handler: handleFeesCollected
+        - event: FeesDistributed(uint256,uint256,uint256)
+          handler: handleFeesDistributed
+      file: ./src/fees.ts
+
+  # LVGStaking
+  - kind: ethereum
+    name: LVGStaking
+    network: bsc
+    source:
+      address: "0x0000000000000000000000000000000000000000" # UPDATE AFTER DEPLOY
+      abi: LVGStaking
+      startBlock: 0 # UPDATE AFTER DEPLOY
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Protocol
+        - User
+        - Stake
+        - Unstake
+        - RewardClaim
+      abis:
+        - name: LVGStaking
+          file: ../contracts/abis/LVGStaking.json
+      eventHandlers:
+        - event: Staked(indexed address,uint256)
+          handler: handleStaked
+        - event: Unstaked(indexed address,uint256)
+          handler: handleUnstaked
+        - event: RewardsClaimed(indexed address,uint256)
+          handler: handleRewardsClaimed
+      file: ./src/staking.ts
