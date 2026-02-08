@@ -7,8 +7,8 @@ const config = {
   tagline: 'Leveraged Yield Farming with up to 5x Leverage',
   favicon: 'img/favicon.ico',
 
-  url: 'https://docs.leveraged.finance',
-  baseUrl: '/',
+  url: 'https://vmaiops-alt.github.io',
+  baseUrl: '/leveraged/',
 
   organizationName: 'leveraged-finance',
   projectName: 'leveraged',
