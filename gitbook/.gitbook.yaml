@@ -1,0 +1,10 @@
+root: ./
+
+structure:
+  readme: README.md
+  summary: SUMMARY.md
+
+redirects:
+  overview: overview/features.md
+  vault: protocol/vault.md
+  staking: token/staking.md
