@@ -7,12 +7,12 @@ Download official LEVERAGED brand assets.
 ### Primary Logo
 Use on light or dark backgrounds.
 
-![Logo](../.gitbook/assets/logo.png)
+*Logo assets available in the brand kit download.*
 
 ### Icon Only
 For small spaces or favicons.
 
-![Icon](../.gitbook/assets/icon.png)
+*Icon assets available in the brand kit download.*
 
 ## Colors
 
