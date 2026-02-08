@@ -73,10 +73,10 @@ contract LVGStaking {
     modifier updateRewards(address user) {
         _updatePool();
         if (user != address(0)) {
-            StakeInfo storage stake = stakes[user];
-            if (stake.amount > 0) {
-                uint256 pending = (stake.amount * accRewardPerShare / 1e12) - stake.rewardDebt;
-                stake.pendingRewards += pending;
+            StakeInfo storage userStake = stakes[user];
+            if (userStake.amount > 0) {
+                uint256 pending = (userStake.amount * accRewardPerShare / 1e12) - userStake.rewardDebt;
+                userStake.pendingRewards += pending;
             }
         }
         _;

@@ -3,6 +3,35 @@ pragma solidity ^0.8.20;
 
 import "./BaseStrategy.sol";
 
+interface IMasterChef {
+    function deposit(uint256 pid, uint256 amount) external;
+    function withdraw(uint256 pid, uint256 amount) external;
+    function pendingCake(uint256 pid, address user) external view returns (uint256);
+    function userInfo(uint256 pid, address user) external view returns (uint256 amount, uint256 rewardDebt);
+    function poolInfo(uint256 pid) external view returns (address lpToken, uint256 allocPoint, uint256 lastRewardBlock, uint256 accCakePerShare);
+}
+
+interface IPancakeRouter {
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+    
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMin,
+        uint256 amountBMin,
+        address to,
+        uint256 deadline
+    ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
+}
+
 /**
  * @title PancakeSwapStrategy
  * @notice Yield strategy for PancakeSwap LP farming
@@ -10,41 +39,10 @@ import "./BaseStrategy.sol";
  */
 contract PancakeSwapStrategy is BaseStrategy {
     
-    // ============ PancakeSwap Interfaces ============
-    
-    interface IMasterChef {
-        function deposit(uint256 pid, uint256 amount) external;
-        function withdraw(uint256 pid, uint256 amount) external;
-        function pendingCake(uint256 pid, address user) external view returns (uint256);
-        function userInfo(uint256 pid, address user) external view returns (uint256 amount, uint256 rewardDebt);
-        function poolInfo(uint256 pid) external view returns (address lpToken, uint256 allocPoint, uint256 lastRewardBlock, uint256 accCakePerShare);
-    }
-    
-    interface IRouter {
-        function swapExactTokensForTokens(
-            uint256 amountIn,
-            uint256 amountOutMin,
-            address[] calldata path,
-            address to,
-            uint256 deadline
-        ) external returns (uint256[] memory amounts);
-        
-        function addLiquidity(
-            address tokenA,
-            address tokenB,
-            uint256 amountADesired,
-            uint256 amountBDesired,
-            uint256 amountAMin,
-            uint256 amountBMin,
-            address to,
-            uint256 deadline
-        ) external returns (uint256 amountA, uint256 amountB, uint256 liquidity);
-    }
-    
     // ============ State ============
     
     IMasterChef public masterChef;
-    IRouter public router;
+    IPancakeRouter public router;
     address public cake;        // CAKE token
     address public wbnb;        // WBNB for swaps
     uint256 public pid;         // Pool ID in MasterChef
@@ -74,7 +72,7 @@ contract PancakeSwapStrategy is BaseStrategy {
         address _tokenB
     ) BaseStrategy(_lpToken) {
         masterChef = IMasterChef(_masterChef);
-        router = IRouter(_router);
+        router = IPancakeRouter(_router);
         cake = _cake;
         wbnb = _wbnb;
         pid = _pid;

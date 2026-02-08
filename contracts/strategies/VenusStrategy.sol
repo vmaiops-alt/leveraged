@@ -3,6 +3,32 @@ pragma solidity ^0.8.20;
 
 import "./BaseStrategy.sol";
 
+interface IVToken {
+    function mint(uint256 mintAmount) external returns (uint256);
+    function redeem(uint256 redeemTokens) external returns (uint256);
+    function redeemUnderlying(uint256 redeemAmount) external returns (uint256);
+    function balanceOf(address owner) external view returns (uint256);
+    function balanceOfUnderlying(address owner) external returns (uint256);
+    function exchangeRateStored() external view returns (uint256);
+    function supplyRatePerBlock() external view returns (uint256);
+}
+
+interface IComptroller {
+    function claimVenus(address holder) external;
+    function claimVenus(address holder, address[] memory vTokens) external;
+    function venusAccrued(address holder) external view returns (uint256);
+}
+
+interface IVenusRouter {
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external returns (uint256[] memory amounts);
+}
+
 /**
  * @title VenusStrategy
  * @notice Yield strategy for Venus Protocol lending
@@ -10,39 +36,11 @@ import "./BaseStrategy.sol";
  */
 contract VenusStrategy is BaseStrategy {
     
-    // ============ Venus Interfaces ============
-    
-    interface IVToken {
-        function mint(uint256 mintAmount) external returns (uint256);
-        function redeem(uint256 redeemTokens) external returns (uint256);
-        function redeemUnderlying(uint256 redeemAmount) external returns (uint256);
-        function balanceOf(address owner) external view returns (uint256);
-        function balanceOfUnderlying(address owner) external returns (uint256);
-        function exchangeRateStored() external view returns (uint256);
-        function supplyRatePerBlock() external view returns (uint256);
-    }
-    
-    interface IComptroller {
-        function claimVenus(address holder) external;
-        function claimVenus(address holder, address[] memory vTokens) external;
-        function venusAccrued(address holder) external view returns (uint256);
-    }
-    
-    interface IRouter {
-        function swapExactTokensForTokens(
-            uint256 amountIn,
-            uint256 amountOutMin,
-            address[] calldata path,
-            address to,
-            uint256 deadline
-        ) external returns (uint256[] memory amounts);
-    }
-    
     // ============ State ============
     
     IVToken public vToken;          // Venus vToken (e.g., vUSDT)
     IComptroller public comptroller;
-    IRouter public router;
+    IVenusRouter public router;
     address public xvs;             // XVS token
     address public wbnb;
     
@@ -67,7 +65,7 @@ contract VenusStrategy is BaseStrategy {
     ) BaseStrategy(_asset) {
         vToken = IVToken(_vToken);
         comptroller = IComptroller(_comptroller);
-        router = IRouter(_router);
+        router = IVenusRouter(_router);
         xvs = _xvs;
         wbnb = _wbnb;
     }

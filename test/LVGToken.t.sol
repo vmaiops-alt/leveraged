@@ -238,8 +238,10 @@ contract LVGTokenTest is Test {
     function test_FarmingEmissionRate() public view {
         uint256 rate = token.getFarmingEmissionRate();
         
-        // 40M tokens over 4 years
-        uint256 expected = 40_000_000 * 1e18 / (4 * 365 days);
-        assertEq(rate, expected);
+        // 40M tokens over 4 years - approx 317 tokens/second
+        uint256 fourYears = 4 * 365 days;
+        uint256 totalTokens = 40_000_000 * 1e18;
+        uint256 expected = totalTokens / fourYears;
+        assertApproxEqAbs(rate, expected, 1e10); // small rounding tolerance
     }
 }

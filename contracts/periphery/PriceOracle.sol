@@ -3,25 +3,23 @@ pragma solidity ^0.8.20;
 
 import "../interfaces/IPriceOracle.sol";
 
+interface AggregatorV3Interface {
+    function latestRoundData() external view returns (
+        uint80 roundId,
+        int256 answer,
+        uint256 startedAt,
+        uint256 updatedAt,
+        uint80 answeredInRound
+    );
+    function decimals() external view returns (uint8);
+}
+
 /**
  * @title PriceOracle
  * @notice Chainlink-based price oracle for asset prices
  * @dev Supports multiple assets with fallback mechanisms
  */
 contract PriceOracle is IPriceOracle {
-    
-    // ============ Interfaces ============
-    
-    interface AggregatorV3Interface {
-        function latestRoundData() external view returns (
-            uint80 roundId,
-            int256 answer,
-            uint256 startedAt,
-            uint256 updatedAt,
-            uint80 answeredInRound
-        );
-        function decimals() external view returns (uint8);
-    }
     
     // ============ State ============
     

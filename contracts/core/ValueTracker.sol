@@ -131,14 +131,6 @@ contract ValueTracker is IValueTracker {
         
         // User gets 75% of value increase
         userAmount = valueIncrease - platformFee;
-        
-        emit ValueIncreaseCalculated(
-            positionId,
-            record.depositValue,
-            record.depositValue + valueIncrease,
-            valueIncrease,
-            platformFee
-        );
     }
     
     /**
