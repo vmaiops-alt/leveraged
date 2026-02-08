@@ -118,12 +118,13 @@ b43cdee Add progress tracking
 - [ ] Verify contracts on BSCScan
 - [ ] Set up multisig for admin
 
-**Phase 6: Frontend**
-- [ ] Next.js app setup
-- [ ] Wallet connection (wagmi)
-- [ ] Position dashboard
-- [ ] Open/close position UI
-- [ ] Staking UI
+**Phase 6: Frontend** ✅
+- [x] Next.js app setup (14.1.0)
+- [x] Wallet connection (wagmi + RainbowKit)
+- [x] Dashboard with stats/features
+- [x] Trade page (leverage slider, P&L scenarios)
+- [x] Earn page (lending pool)
+- [x] Staking page (fee discount tiers)
 
 **Phase 7: Audit Prep**
 - [ ] NatSpec documentation
@@ -139,5 +140,6 @@ b43cdee Add progress tracking
 |--------|-------|
 | Total Contracts | 19 |
 | Lines of Solidity | ~3,650 |
-| Phases Complete | 3/7 |
-| Progress | ~45% |
+| Lines of TypeScript | ~1,600 |
+| Phases Complete | 4/7 |
+| Progress | ~60% |
