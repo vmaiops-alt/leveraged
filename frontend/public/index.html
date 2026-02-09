@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LEVERAGED - BSC Testnet</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #11111B; 
+      color: #fff; 
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { 
+      font-size: 3rem; 
+      background: linear-gradient(to right, #6366f1, #a855f7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 1rem;
+    }
+    .subtitle { color: #9ca3af; font-size: 1.2rem; margin-bottom: 2rem; }
+    .badge { 
+      display: inline-block;
+      background: rgba(234, 179, 8, 0.2);
+      color: #eab308;
+      padding: 0.25rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      margin-left: 1rem;
+    }
+    .card {
+      background: #181825;
+      border: 1px solid #2d2d3d;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 { color: #22c55e; margin-bottom: 1rem; }
+    .contract {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem;
+      background: #11111B;
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .contract-name { color: #9ca3af; }
+    .contract-addr { 
+      color: #818cf8; 
+      text-decoration: none;
+      font-family: monospace;
+    }
+    .contract-addr:hover { color: #a5b4fc; }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    .feature {
+      background: #181825;
+      border: 1px solid #2d2d3d;
+      border-radius: 1rem;
+      padding: 1.5rem;
+    }
+    .feature-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .feature h3 { margin-bottom: 0.5rem; }
+    .feature p { color: #9ca3af; font-size: 0.9rem; }
+    .buttons { display: flex; gap: 1rem; margin: 2rem 0; }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .btn-primary { background: #6366f1; color: white; }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn-secondary { background: #374151; color: white; }
+    .btn-secondary:hover { background: #4b5563; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>LEVERAGED <span class="badge">TESTNET</span></h1>
+    <p class="subtitle">Leveraged yield farming on BSC. Up to 5x leverage, pay only 25% of gains.</p>
+    
+    <div class="buttons">
+      <a href="https://vmaiops-alt.github.io/leveraged/" target="_blank" class="btn btn-primary">📚 Read Docs</a>
+      <a href="https://testnet.bscscan.com/address/0xE163112607794a73281Cb390ae9FC30f3287A7D8" target="_blank" class="btn btn-secondary">🔍 View on BscScan</a>
+    </div>
+
+    <div class="card">
+      <h2>✅ Deployed Contracts</h2>
+      <div class="contract">
+        <span class="contract-name">LeveragedVault</span>
+        <a href="https://testnet.bscscan.com/address/0xE163112607794a73281Cb390ae9FC30f3287A7D8" target="_blank" class="contract-addr">0xE163...7D8 ↗</a>
+      </div>
+      <div class="contract">
+        <span class="contract-name">LendingPool</span>
+        <a href="https://testnet.bscscan.com/address/0xCE066289D798300ceFCC1B6FdEa5dD10AF113486" target="_blank" class="contract-addr">0xCE06...486 ↗</a>
+      </div>
+      <div class="contract">
+        <span class="contract-name">LVG Token</span>
+        <a href="https://testnet.bscscan.com/address/0xBA32bF5e975a53832EB757475B4a620B3219bB01" target="_blank" class="contract-addr">0xBA32...B01 ↗</a>
+      </div>
+      <div class="contract">
+        <span class="contract-name">LVG Staking</span>
+        <a href="https://testnet.bscscan.com/address/0xB837bbcf932D8156B9fe5d06a496e54aF18EBa15" target="_blank" class="contract-addr">0xB837...15 ↗</a>
+      </div>
+      <div class="contract">
+        <span class="contract-name">PriceOracle</span>
+        <a href="https://testnet.bscscan.com/address/0x8094813806b30dC45259Fc8fdf01FFb85dDB81Ee" target="_blank" class="contract-addr">0x8094...Ee ↗</a>
+      </div>
+      <div class="contract">
+        <span class="contract-name">FeeCollector</span>
+        <a href="https://testnet.bscscan.com/address/0x77D8AfD4dB7a29c26d297E021C9C24E9187B6f77" target="_blank" class="contract-addr">0x77D8...77 ↗</a>
+      </div>
+      <div class="contract">
+        <span class="contract-name">Liquidator</span>
+        <a href="https://testnet.bscscan.com/address/0xc3C7265C547e9a4040A671E6561f4a2f3dE99c87" target="_blank" class="contract-addr">0xc3C7...87 ↗</a>
+      </div>
+      <div class="contract">
+        <span class="contract-name">ValueTracker</span>
+        <a href="https://testnet.bscscan.com/address/0xC080c0F2a33cDa382fcF3064fA9232Cf09273511" target="_blank" class="contract-addr">0xC080...11 ↗</a>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">📈</div>
+        <h3>Up to 5x Leverage</h3>
+        <p>Amplify exposure to BTC, ETH, BNB</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💰</div>
+        <h3>25% Value Fee</h3>
+        <p>Only pay on gains, not losses</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🪙</div>
+        <h3>$LVG Token</h3>
+        <p>Stake for discounts & revenue share</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
