@@ -10,6 +10,15 @@ ffi = false
 fuzz = { runs = 256 }
 invariant = { runs = 256 }
 
+remappings = [
+    # OpenZeppelin v5 (Solidity 0.8.20+)
+    "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+    # LayerZero V2 OFT
+    "@layerzerolabs/oft-evm/=lib/layerzero-devtools/packages/oft-evm/",
+    "@layerzerolabs/oapp-evm/=lib/layerzero-devtools/packages/oapp-evm/",
+    "@layerzerolabs/lz-evm-protocol-v2/=lib/layerzero-v2/packages/layerzero-v2/evm/protocol/",
+]
+
 [profile.default.fmt]
 line_length = 120
 tab_width = 4
