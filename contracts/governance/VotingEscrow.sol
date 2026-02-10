@@ -78,6 +78,10 @@ contract VotingEscrow is ReentrancyGuard {
         
         totalLocked += _amount;
         
+        // Update total voting power
+        uint256 votePower = balanceOf(msg.sender);
+        _updateTotalVotingPower(int256(votePower));
+        
         emit Deposited(msg.sender, _amount, unlockTime);
     }
     
@@ -149,13 +153,28 @@ contract VotingEscrow is ReentrancyGuard {
         return (lock.amount * timeRemaining) / MAX_LOCK;
     }
     
+    // Track total voting power (updated on lock/unlock/extend)
+    uint256 public totalVotingPower;
+    
     /**
      * @notice Get total voting power
+     * @dev Returns accumulated voting power from all locks
      */
     function totalSupply() external view returns (uint256) {
-        // Simplified: return total locked weighted by average remaining time
-        // In production, iterate or maintain separate state
-        return totalLocked / 2; // Rough estimate
+        return totalVotingPower;
+    }
+    
+    /**
+     * @dev Internal function to update total voting power
+     */
+    function _updateTotalVotingPower(int256 delta) internal {
+        if (delta > 0) {
+            totalVotingPower += uint256(delta);
+        } else if (delta < 0 && totalVotingPower >= uint256(-delta)) {
+            totalVotingPower -= uint256(-delta);
+        } else {
+            totalVotingPower = 0;
+        }
     }
     
     /**

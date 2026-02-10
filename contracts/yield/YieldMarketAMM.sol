@@ -117,13 +117,15 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
         if (_ptIn == 0) revert ZeroAmount();
         
         // Calculate output
-        underlyingOut = _getUnderlyingOut(_ptIn);
-        if (underlyingOut < _minUnderlyingOut) revert InsufficientOutput();
-        if (underlyingOut > underlyingReserve) revert InsufficientLiquidity();
+        uint256 grossOut = _getUnderlyingOut(_ptIn);
+        if (grossOut > underlyingReserve) revert InsufficientLiquidity();
         
-        // Collect fee
-        uint256 fee = (underlyingOut * swapFee) / BASIS_POINTS;
-        underlyingOut -= fee;
+        // Collect fee BEFORE slippage check
+        uint256 fee = (grossOut * swapFee) / BASIS_POINTS;
+        underlyingOut = grossOut - fee;
+        
+        // Check slippage AFTER fee deduction
+        if (underlyingOut < _minUnderlyingOut) revert InsufficientOutput();
         
         // Transfer tokens
         pt.safeTransferFrom(msg.sender, address(this), _ptIn);
@@ -135,7 +137,7 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
         
         // Update reserves
         ptReserve += _ptIn;
-        underlyingReserve -= underlyingOut + fee;
+        underlyingReserve -= grossOut;
         
         emit Swap(msg.sender, address(pt), _ptIn, address(underlying), underlyingOut);
     }
@@ -193,10 +195,14 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
         uint256 totalSupplyBefore = totalSupply();
         
         if (totalSupplyBefore == 0) {
-            // Initial liquidity
+            // Initial liquidity - mint minimum liquidity to dead address to prevent inflation attack
             ptActual = _ptDesired;
             underlyingActual = _underlyingDesired;
-            lpTokens = _sqrt(ptActual * underlyingActual);
+            uint256 rawLpTokens = _sqrt(ptActual * underlyingActual);
+            uint256 MINIMUM_LIQUIDITY = 1000;
+            require(rawLpTokens > MINIMUM_LIQUIDITY, "Initial liquidity too low");
+            _mint(address(0xdead), MINIMUM_LIQUIDITY);
+            lpTokens = rawLpTokens - MINIMUM_LIQUIDITY;
         } else {
             // Proportional liquidity
             uint256 ptRatio = (_ptDesired * RATE_PRECISION) / ptReserve;

@@ -314,11 +314,26 @@ contract YieldTokenizer is ReentrancyGuard, Ownable {
         return "MATURITY";
     }
     
+    // Yield index adapters for different protocols
+    mapping(address => address) public yieldAdapters;
+    
+    function setYieldAdapter(address _underlying, address _adapter) external onlyOwner {
+        yieldAdapters[_underlying] = _adapter;
+    }
+    
     function _getYieldIndex(address _underlying) internal view returns (uint256) {
-        // In production, this would query the underlying protocol's yield index
-        // For Aave: aToken.getReserveNormalizedIncome()
-        // For Compound: cToken.exchangeRateStored()
-        // Simplified: return 1e18 (no yield accrued in mock)
+        address adapter = yieldAdapters[_underlying];
+        if (adapter != address(0)) {
+            // Call adapter to get yield index
+            // Adapter should implement: function getYieldIndex() external view returns (uint256)
+            (bool success, bytes memory data) = adapter.staticcall(
+                abi.encodeWithSignature("getYieldIndex()")
+            );
+            if (success && data.length >= 32) {
+                return abi.decode(data, (uint256));
+            }
+        }
+        // Default: 1e18 (no yield if no adapter configured)
         return 1e18;
     }
     

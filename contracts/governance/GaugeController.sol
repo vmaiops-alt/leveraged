@@ -27,6 +27,7 @@ contract GaugeController is Ownable {
     struct VoteInfo {
         uint256 weight;         // Vote weight in basis points (max 10000)
         uint256 timestamp;      // Last vote timestamp
+        uint256 votePowerAtVote; // veLVG balance when vote was cast
     }
     
     // ============ State Variables ============
@@ -135,17 +136,19 @@ contract GaugeController is Ownable {
         uint256 newUsedPower = userVotePowerUsed[msg.sender] - voteInfo.weight + _weight;
         if (newUsedPower > 10000) revert ExceedsMaxWeight();
         
-        // Update totals
-        uint256 oldVotes = (votePower * voteInfo.weight) / 10000;
+        // Update totals using stored vote power for old votes (if exists)
+        uint256 oldVotePower = voteInfo.votePowerAtVote > 0 ? voteInfo.votePowerAtVote : votePower;
+        uint256 oldVotes = (oldVotePower * voteInfo.weight) / 10000;
         uint256 newVotes = (votePower * _weight) / 10000;
         
         gaugeVotes[_gaugeId] = gaugeVotes[_gaugeId] - oldVotes + newVotes;
         totalVotes = totalVotes - oldVotes + newVotes;
         
-        // Update user state
+        // Update user state with current vote power
         userVotePowerUsed[msg.sender] = newUsedPower;
         voteInfo.weight = _weight;
         voteInfo.timestamp = block.timestamp;
+        voteInfo.votePowerAtVote = votePower;
         
         emit Voted(msg.sender, _gaugeId, _weight);
     }
@@ -157,14 +160,16 @@ contract GaugeController is Ownable {
         VoteInfo storage voteInfo = userVotes[msg.sender][_gaugeId];
         if (voteInfo.weight == 0) return;
         
-        uint256 votePower = votingEscrow.balanceOf(msg.sender);
-        uint256 oldVotes = (votePower * voteInfo.weight) / 10000;
+        // Use stored vote power from when vote was cast (not current decayed power)
+        uint256 oldVotePower = voteInfo.votePowerAtVote;
+        uint256 oldVotes = (oldVotePower * voteInfo.weight) / 10000;
         
         gaugeVotes[_gaugeId] -= oldVotes;
         totalVotes -= oldVotes;
         
         userVotePowerUsed[msg.sender] -= voteInfo.weight;
         voteInfo.weight = 0;
+        voteInfo.votePowerAtVote = 0;
         
         emit VoteReset(msg.sender, _gaugeId);
     }

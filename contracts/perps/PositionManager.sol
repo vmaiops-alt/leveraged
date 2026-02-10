@@ -46,7 +46,7 @@ contract PositionManager is ReentrancyGuard, Ownable {
         uint256 size;               // Position size in USD (30 decimals)
         uint256 collateral;         // Collateral in USD (30 decimals)
         uint256 averagePrice;       // Average entry price (30 decimals)
-        uint256 entryFundingRate;   // Funding rate at entry
+        int256 entryFundingRate;    // Funding rate at entry (signed for negative rates)
         uint256 lastUpdated;        // Last update timestamp
     }
     
@@ -181,7 +181,7 @@ contract PositionManager is ReentrancyGuard, Ownable {
             position.indexToken = _indexToken;
             position.isLong = _isLong;
             position.averagePrice = indexPrice;
-            position.entryFundingRate = uint256(cumulativeFundingRates[_indexToken] > 0 ? cumulativeFundingRates[_indexToken] : int256(0));
+            position.entryFundingRate = cumulativeFundingRates[_indexToken];
             userPositions[msg.sender].push(positionKey);
         } else {
             // Increase existing - calculate new average price
@@ -284,14 +284,16 @@ contract PositionManager is ReentrancyGuard, Ownable {
         (bool isLiquidatable, int256 pnl) = _isLiquidatable(position, currentPrice);
         if (!isLiquidatable) revert NotLiquidatable();
         
-        // Calculate liquidation fee
+        // Calculate liquidation fee and cache collateral token BEFORE deletion
         uint256 liquidationFeeAmount = (position.collateral * liquidationFee) / BASIS_POINTS;
+        address collateralToken = position.collateralToken;
+        uint256 collateralTokenPrice = priceOracle.getPrice(collateralToken);
         
-        // Close position
+        // Close position (this deletes the position)
         _closePosition(_positionKey, pnl);
         
-        // Pay liquidator
-        vault.transferOut(position.collateralToken, msg.sender, (liquidationFeeAmount * PRICE_PRECISION) / priceOracle.getPrice(position.collateralToken));
+        // Pay liquidator (using cached values)
+        vault.transferOut(collateralToken, msg.sender, (liquidationFeeAmount * PRICE_PRECISION) / collateralTokenPrice);
         
         emit PositionLiquidated(_positionKey, msg.sender, pnl);
     }
@@ -349,7 +351,7 @@ contract PositionManager is ReentrancyGuard, Ownable {
     }
     
     function _calculateFundingPayment(Position storage _position) internal view returns (int256) {
-        int256 fundingRate = cumulativeFundingRates[_position.indexToken] - int256(_position.entryFundingRate);
+        int256 fundingRate = cumulativeFundingRates[_position.indexToken] - _position.entryFundingRate;
         if (_position.isLong) {
             return (int256(_position.size) * fundingRate) / int256(PRICE_PRECISION);
         } else {

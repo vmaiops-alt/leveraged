@@ -426,14 +426,15 @@ contract LendingPoolV5 is ReentrancyGuard {
         // Transfer to receiver
         asset.safeTransfer(receiver, amount);
         
-        // Call receiver
-        IFlashLoanReceiver(receiver).executeOperation(
+        // Call receiver and verify return value
+        bool success = IFlashLoanReceiver(receiver).executeOperation(
             address(asset),
             amount,
             fee,
             msg.sender,
             params
         );
+        require(success, "Flash loan execution failed");
         
         // Verify repayment
         uint256 balanceAfter = asset.balanceOf(address(this));

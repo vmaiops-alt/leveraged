@@ -160,8 +160,9 @@ contract YieldToken is ERC20, ERC20Permit, Ownable {
         
         unclaimedYield[msg.sender] = 0;
         
-        // Transfer yield from tokenizer
-        // Note: Tokenizer handles actual transfer
+        // Transfer yield to user from tokenizer's underlying balance
+        IERC20(underlying).safeTransfer(msg.sender, amount);
+        
         emit YieldClaimed(msg.sender, amount);
     }
     
