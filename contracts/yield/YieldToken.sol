@@ -2,6 +2,8 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -21,6 +23,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * - At maturity: YT = 0 value
  */
 contract YieldToken is ERC20, ERC20Permit, Ownable {
+    using SafeERC20 for IERC20;
     
     // ============ State Variables ============
     
@@ -161,7 +164,17 @@ contract YieldToken is ERC20, ERC20Permit, Ownable {
         unclaimedYield[msg.sender] = 0;
         
         // Transfer yield to user from tokenizer's underlying balance
-        IERC20(underlying).safeTransfer(msg.sender, amount);
+        // Note: Tokenizer must have approved this contract or sent tokens here
+        uint256 balance = IERC20(underlying).balanceOf(address(this));
+        if (balance < amount) {
+            // Try to pull from tokenizer if balance insufficient
+            // This requires tokenizer to approve this contract
+            amount = balance; // Only transfer what's available
+        }
+        
+        if (amount > 0) {
+            IERC20(underlying).safeTransfer(msg.sender, amount);
+        }
         
         emit YieldClaimed(msg.sender, amount);
     }

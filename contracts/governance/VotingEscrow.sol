@@ -33,12 +33,21 @@ contract VotingEscrow is ReentrancyGuard {
     uint256 public constant MAX_LOCK = 4 * 365 days;
     uint256 public constant MIN_LOCK = WEEK;
     
+    // ============ Delegation ============
+    
+    /// @notice Delegate mapping: delegator => delegatee
+    mapping(address => address) public delegates;
+    
+    /// @notice Delegated voting power received
+    mapping(address => uint256) public delegatedVotingPower;
+    
     // ============ Events ============
     
     event Deposited(address indexed user, uint256 amount, uint256 lockEnd);
     event Withdrawn(address indexed user, uint256 amount);
     event LockExtended(address indexed user, uint256 newEnd);
     event AmountIncreased(address indexed user, uint256 addedAmount);
+    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
     
     // ============ Errors ============
     
@@ -82,7 +91,7 @@ contract VotingEscrow is ReentrancyGuard {
         totalLocked += _amount;
         
         // Update total voting power
-        uint256 votePower = balanceOf(msg.sender);
+        uint256 votePower = this.balanceOf(msg.sender);
         _updateTotalVotingPower(int256(votePower));
         
         emit Deposited(msg.sender, _amount, unlockTime);
@@ -195,5 +204,47 @@ contract VotingEscrow is ReentrancyGuard {
         Lock storage lock = locks[_user];
         if (lock.end <= block.timestamp) return 0;
         return lock.end - block.timestamp;
+    }
+    
+    // ============ Delegation Functions ============
+    
+    /**
+     * @notice Delegate voting power to another address
+     * @param _delegatee Address to delegate to (address(0) to remove delegation)
+     */
+    function delegate(address _delegatee) external {
+        address currentDelegate = delegates[msg.sender];
+        uint256 votingPower = this.balanceOf(msg.sender);
+        
+        // Remove power from old delegate
+        if (currentDelegate != address(0) && currentDelegate != msg.sender) {
+            delegatedVotingPower[currentDelegate] -= votingPower;
+        }
+        
+        // Add power to new delegate
+        if (_delegatee != address(0) && _delegatee != msg.sender) {
+            delegatedVotingPower[_delegatee] += votingPower;
+        }
+        
+        delegates[msg.sender] = _delegatee;
+        
+        emit DelegateChanged(msg.sender, currentDelegate, _delegatee);
+    }
+    
+    /**
+     * @notice Get total voting power including delegations
+     * @param _user Address to check
+     */
+    function getVotingPower(address _user) external view returns (uint256) {
+        uint256 ownPower = this.balanceOf(_user);
+        
+        // If user has delegated their power away, they have 0 own power
+        address userDelegate = delegates[_user];
+        if (userDelegate != address(0) && userDelegate != _user) {
+            ownPower = 0;
+        }
+        
+        // Add any delegated power received
+        return ownPower + delegatedVotingPower[_user];
     }
 }

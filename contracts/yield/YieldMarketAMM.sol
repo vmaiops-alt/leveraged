@@ -42,7 +42,8 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
     uint256 public underlyingReserve;
     
     /// @notice Scalar for time-decay curve (affects price sensitivity)
-    uint256 public scalar = 100; // 1.00 in basis points
+    /// @dev Currently unused but reserved for future curve adjustments
+    uint256 public scalar = 100; // 1.00 in basis points (reserved)
     
     /// @notice Swap fee in basis points (0.1%)
     uint256 public swapFee = 10;
@@ -184,12 +185,15 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
      * @param _ptDesired Desired PT amount
      * @param _underlyingDesired Desired underlying amount
      * @param _minLpTokens Minimum LP tokens to receive
+     * @param _deadline Transaction deadline timestamp
      */
     function addLiquidity(
         uint256 _ptDesired,
         uint256 _underlyingDesired,
-        uint256 _minLpTokens
+        uint256 _minLpTokens,
+        uint256 _deadline
     ) external nonReentrant notExpired returns (uint256 lpTokens, uint256 ptActual, uint256 underlyingActual) {
+        require(_deadline == 0 || block.timestamp <= _deadline, "Transaction expired");
         if (_ptDesired == 0 || _underlyingDesired == 0) revert ZeroAmount();
         
         uint256 totalSupplyBefore = totalSupply();
@@ -240,12 +244,15 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
      * @param _lpTokens LP tokens to burn
      * @param _minPtOut Minimum PT to receive
      * @param _minUnderlyingOut Minimum underlying to receive
+     * @param _deadline Transaction deadline timestamp
      */
     function removeLiquidity(
         uint256 _lpTokens,
         uint256 _minPtOut,
-        uint256 _minUnderlyingOut
+        uint256 _minUnderlyingOut,
+        uint256 _deadline
     ) external nonReentrant returns (uint256 ptOut, uint256 underlyingOut) {
+        require(_deadline == 0 || block.timestamp <= _deadline, "Transaction expired");
         if (_lpTokens == 0) revert ZeroAmount();
         
         uint256 totalSupplyBefore = totalSupply();
@@ -279,8 +286,8 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
     function _getUnderlyingOut(uint256 _ptIn) internal view returns (uint256) {
         // Simple constant product with time adjustment
         // As maturity approaches, PT → underlying 1:1
-        uint256 timeToMaturity = maturity > block.timestamp ? maturity - block.timestamp : 0;
-        uint256 discount = _getDiscount(timeToMaturity);
+        uint256 ttm = maturity > block.timestamp ? maturity - block.timestamp : 0;
+        uint256 discount = _getDiscount(ttm);
         
         // Adjusted constant product
         uint256 k = ptReserve * underlyingReserve;
@@ -297,8 +304,8 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
      * @notice Calculate PT output for underlying input
      */
     function _getPtOut(uint256 _underlyingIn) internal view returns (uint256) {
-        uint256 timeToMaturity = maturity > block.timestamp ? maturity - block.timestamp : 0;
-        uint256 discount = _getDiscount(timeToMaturity);
+        uint256 ttm = maturity > block.timestamp ? maturity - block.timestamp : 0;
+        uint256 discount = _getDiscount(ttm);
         
         // Adjusted constant product
         uint256 k = ptReserve * underlyingReserve;
@@ -340,8 +347,8 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
     function getImpliedRate() external view returns (uint256) {
         if (ptReserve == 0 || underlyingReserve == 0) return anchorRate;
         
-        uint256 timeToMaturity = maturity > block.timestamp ? maturity - block.timestamp : 0;
-        if (timeToMaturity == 0) return 0;
+        uint256 ttm = maturity > block.timestamp ? maturity - block.timestamp : 0;
+        if (ttm == 0) return 0;
         
         // Implied rate from PT price
         // Price = underlying / PT in terms of reserves
@@ -349,7 +356,7 @@ contract YieldMarketAMM is ERC20, ReentrancyGuard, Ownable {
         uint256 price = (underlyingReserve * RATE_PRECISION) / ptReserve;
         if (price >= RATE_PRECISION) return 0;
         
-        return ((RATE_PRECISION - price) * YEAR * RATE_PRECISION) / (price * timeToMaturity);
+        return ((RATE_PRECISION - price) * YEAR * RATE_PRECISION) / (price * ttm);
     }
     
     /**

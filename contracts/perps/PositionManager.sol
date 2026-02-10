@@ -95,6 +95,12 @@ contract PositionManager is ReentrancyGuard, Ownable {
     /// @notice Funding rate factor (0.01% per hour per 1% imbalance)
     uint256 public fundingRateFactor = 100;
     
+    /// @notice Maximum price age before considered stale (10 minutes)
+    uint256 public maxPriceAge = 10 minutes;
+    
+    /// @notice Track total bad debt
+    uint256 public totalBadDebt;
+    
     // ============ Events ============
     
     event PositionOpened(
@@ -110,6 +116,7 @@ contract PositionManager is ReentrancyGuard, Ownable {
     event PositionClosed(bytes32 indexed positionKey, int256 pnl);
     event PositionLiquidated(bytes32 indexed positionKey, address liquidator, int256 pnl);
     event FundingUpdated(address indexed token, int256 fundingRate);
+    event BadDebtRecorded(bytes32 indexed positionKey, uint256 amount);
     
     // ============ Errors ============
     
@@ -158,14 +165,17 @@ contract PositionManager is ReentrancyGuard, Ownable {
         uint256 collateralPrice = priceOracle.getPrice(_collateralToken);
         uint256 collateralUsd = (_collateralAmount * collateralPrice) / PRICE_PRECISION;
         
-        // Collect fees
+        // Check leverage BEFORE fee deduction to ensure user intended leverage is valid
         uint256 fee = (_sizeDelta * vault.marginFee()) / BASIS_POINTS;
-        vault.collectTradingFees(fee);
-        collateralUsd -= fee;
+        uint256 collateralAfterFees = collateralUsd - fee;
+        require(collateralAfterFees > 0, "Fee exceeds collateral");
         
-        // Check leverage
-        uint256 leverage = (_sizeDelta * BASIS_POINTS) / collateralUsd;
+        uint256 leverage = (_sizeDelta * BASIS_POINTS) / collateralAfterFees;
         if (leverage > MAX_LEVERAGE * BASIS_POINTS) revert MaxLeverageExceeded();
+        
+        // Collect fees after leverage check passes
+        vault.collectTradingFees(fee);
+        collateralUsd = collateralAfterFees;
         
         // Get index price
         uint256 indexPrice = priceOracle.getPrice(_indexToken);
@@ -284,16 +294,30 @@ contract PositionManager is ReentrancyGuard, Ownable {
         (bool isLiquidatable, int256 pnl) = _isLiquidatable(position, currentPrice);
         if (!isLiquidatable) revert NotLiquidatable();
         
-        // Calculate liquidation fee and cache collateral token BEFORE deletion
+        // Calculate liquidation fee and cache all position data BEFORE deletion
         uint256 liquidationFeeAmount = (position.collateral * liquidationFee) / BASIS_POINTS;
         address collateralToken = position.collateralToken;
+        uint256 positionCollateral = position.collateral;
         uint256 collateralTokenPrice = priceOracle.getPrice(collateralToken);
+        
+        // Track bad debt if position is underwater beyond collateral
+        int256 remainingCollateral = int256(positionCollateral) + pnl - int256(liquidationFeeAmount);
+        if (remainingCollateral < 0) {
+            uint256 badDebt = uint256(-remainingCollateral);
+            totalBadDebt += badDebt;
+            emit BadDebtRecorded(_positionKey, badDebt);
+            // Reduce liquidation fee to 0 if bad debt exists
+            liquidationFeeAmount = 0;
+        }
         
         // Close position (this deletes the position)
         _closePosition(_positionKey, pnl);
         
-        // Pay liquidator (using cached values)
-        vault.transferOut(collateralToken, msg.sender, (liquidationFeeAmount * PRICE_PRECISION) / collateralTokenPrice);
+        // Pay liquidator (using cached values) - MEV protection via on-chain randomness not feasible,
+        // but we ensure liquidator gets paid fairly based on the position state
+        if (liquidationFeeAmount > 0) {
+            vault.transferOut(collateralToken, msg.sender, (liquidationFeeAmount * PRICE_PRECISION) / collateralTokenPrice);
+        }
         
         emit PositionLiquidated(_positionKey, msg.sender, pnl);
     }

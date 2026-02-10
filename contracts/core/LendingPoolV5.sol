@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
  * @title LendingPoolV5
@@ -16,7 +17,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * - Bad debt insurance fund
  * - Flash loan support
  */
-contract LendingPoolV5 is ReentrancyGuard {
+contract LendingPoolV5 is ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
     
     // ============ Constants ============
@@ -113,6 +114,33 @@ contract LendingPoolV5 is ReentrancyGuard {
     modifier onlyOwner() {
         require(msg.sender == owner, "Not owner");
         _;
+    }
+    
+    // ============ Ownership Functions ============
+    
+    /**
+     * @notice Transfer ownership to a new address
+     * @param newOwner Address of the new owner
+     */
+    function transferOwnership(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Invalid new owner");
+        owner = newOwner;
+    }
+    
+    // ============ Pause Functions ============
+    
+    /**
+     * @notice Pause the contract
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+    
+    /**
+     * @notice Unpause the contract
+     */
+    function unpause() external onlyOwner {
+        _unpause();
     }
     
     modifier onlyVault() {
@@ -318,7 +346,7 @@ contract LendingPoolV5 is ReentrancyGuard {
     
     // ============ Deposit/Withdraw Functions ============
     
-    function deposit(uint256 amount) external nonReentrant returns (uint256 shares) {
+    function deposit(uint256 amount) external nonReentrant whenNotPaused returns (uint256 shares) {
         require(amount > 0, "Zero amount");
         
         _accrueInterest();
@@ -339,7 +367,7 @@ contract LendingPoolV5 is ReentrancyGuard {
         emit Deposited(msg.sender, amount, shares);
     }
     
-    function withdraw(uint256 shares) external nonReentrant returns (uint256 amount) {
+    function withdraw(uint256 shares) external nonReentrant whenNotPaused returns (uint256 amount) {
         require(shares > 0, "Zero shares");
         require(userPositions[msg.sender].shares >= shares, "Insufficient shares");
         
@@ -412,7 +440,7 @@ contract LendingPoolV5 is ReentrancyGuard {
         address receiver,
         uint256 amount,
         bytes calldata params
-    ) external nonReentrant {
+    ) external nonReentrant whenNotPaused {
         require(!_flashLoanActive, "Flash loan in progress");
         require(amount > 0, "Zero amount");
         
@@ -459,7 +487,9 @@ contract LendingPoolV5 is ReentrancyGuard {
         }
         
         uint256 borrowRate = getBorrowRate();
-        uint256 interest = (totalBorrowed * borrowRate * timeElapsed) / (BPS_DENOMINATOR * SECONDS_PER_YEAR);
+        // Use higher precision for intermediate calculation to avoid precision loss
+        uint256 interest = (totalBorrowed * borrowRate * timeElapsed * 1e18) / (BPS_DENOMINATOR * SECONDS_PER_YEAR);
+        interest = interest / 1e18;
         
         // Insurance fee
         uint256 insuranceCut = (interest * INSURANCE_FEE) / BPS_DENOMINATOR;

@@ -59,6 +59,7 @@ contract GaugeController is Ownable {
     
     event GaugeAdded(uint256 indexed gaugeId, address pool, string name);
     event GaugeRemoved(uint256 indexed gaugeId);
+    event GaugeWeightChanged(uint256 indexed gaugeId, uint256 oldWeight, uint256 newWeight);
     event Voted(address indexed user, uint256 indexed gaugeId, uint256 weight);
     event VoteReset(address indexed user, uint256 indexed gaugeId);
     
@@ -96,17 +97,21 @@ contract GaugeController is Ownable {
     }
     
     /**
-     * @notice Remove a gauge
+     * @notice Remove a gauge and refund all vote power to users
+     * @dev Users can reclaim their votes by calling resetVote() after removal
      */
     function removeGauge(uint256 _gaugeId) external onlyOwner {
         if (_gaugeId >= gaugeCount) revert GaugeNotFound();
         
         gauges[_gaugeId].active = false;
         
-        // Remove gauge votes from total
-        totalVotes -= gaugeVotes[_gaugeId];
+        // Note: Users' vote power is automatically freed when they call resetVote()
+        // The gauge votes are zeroed but users keep their allocation until they reset
+        uint256 oldVotes = gaugeVotes[_gaugeId];
+        totalVotes -= oldVotes;
         gaugeVotes[_gaugeId] = 0;
         
+        emit GaugeWeightChanged(_gaugeId, oldVotes, 0);
         emit GaugeRemoved(_gaugeId);
     }
     

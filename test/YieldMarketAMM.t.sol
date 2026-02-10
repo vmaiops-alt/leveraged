@@ -66,6 +66,7 @@ contract YieldMarketAMMTest is Test {
         (uint256 lpTokens, uint256 ptActual, uint256 underlyingActual) = amm.addLiquidity(
             ptAmount,
             underlyingAmount,
+            0,
             0
         );
         
@@ -80,13 +81,14 @@ contract YieldMarketAMMTest is Test {
     function test_AddLiquidity_Proportional() public {
         // Add initial liquidity
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         // Add more liquidity
         vm.prank(user2);
         (uint256 lpTokens, uint256 ptActual, uint256 underlyingActual) = amm.addLiquidity(
             5_000 * 1e18,
             5_000 * 1e18,
+            0,
             0
         );
         
@@ -98,20 +100,20 @@ contract YieldMarketAMMTest is Test {
     function test_AddLiquidity_ZeroAmount() public {
         vm.prank(user1);
         vm.expectRevert(YieldMarketAMM.ZeroAmount.selector);
-        amm.addLiquidity(0, 1000 * 1e18, 0);
+        amm.addLiquidity(0, 1000 * 1e18, 0, 0);
     }
     
     function test_RemoveLiquidity() public {
         // Add liquidity
         vm.prank(user1);
-        (uint256 lpTokens,,) = amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        (uint256 lpTokens,,) = amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         uint256 ptBefore = pt.balanceOf(user1);
         uint256 underlyingBefore = underlying.balanceOf(user1);
         
         // Remove half
         vm.prank(user1);
-        (uint256 ptOut, uint256 underlyingOut) = amm.removeLiquidity(lpTokens / 2, 0, 0);
+        (uint256 ptOut, uint256 underlyingOut) = amm.removeLiquidity(lpTokens / 2, 0, 0, 0);
         
         assertEq(pt.balanceOf(user1), ptBefore + ptOut);
         assertEq(underlying.balanceOf(user1), underlyingBefore + underlyingOut);
@@ -120,10 +122,10 @@ contract YieldMarketAMMTest is Test {
     
     function test_RemoveLiquidity_All() public {
         vm.prank(user1);
-        (uint256 lpTokens,,) = amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        (uint256 lpTokens,,) = amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         vm.prank(user1);
-        amm.removeLiquidity(lpTokens, 0, 0);
+        amm.removeLiquidity(lpTokens, 0, 0, 0);
         
         assertEq(amm.balanceOf(user1), 0);
         assertEq(amm.ptReserve(), 0);
@@ -135,7 +137,7 @@ contract YieldMarketAMMTest is Test {
     function test_SwapPtForUnderlying() public {
         // Add liquidity first
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         uint256 ptIn = 100 * 1e18;
         uint256 underlyingBefore = underlying.balanceOf(user2);
@@ -150,7 +152,7 @@ contract YieldMarketAMMTest is Test {
     function test_SwapUnderlyingForPt() public {
         // Add liquidity first
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         uint256 underlyingIn = 100 * 1e18;
         uint256 ptBefore = pt.balanceOf(user2);
@@ -164,7 +166,7 @@ contract YieldMarketAMMTest is Test {
     
     function test_Swap_ZeroAmount() public {
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         vm.prank(user2);
         vm.expectRevert(YieldMarketAMM.ZeroAmount.selector);
@@ -173,7 +175,7 @@ contract YieldMarketAMMTest is Test {
     
     function test_Swap_SlippageProtection() public {
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         vm.prank(user2);
         vm.expectRevert(YieldMarketAMM.InsufficientOutput.selector);
@@ -184,7 +186,7 @@ contract YieldMarketAMMTest is Test {
         // With constant product AMM, large swaps have high slippage
         // but don't fail - they just get less output
         vm.prank(user1);
-        amm.addLiquidity(100 * 1e18, 95 * 1e18, 0);
+        amm.addLiquidity(100 * 1e18, 95 * 1e18, 0, 0);
         
         // Large swap relative to pool - should work but with bad rate
         vm.prank(user2);
@@ -198,7 +200,7 @@ contract YieldMarketAMMTest is Test {
     
     function test_QuotePtForUnderlying() public {
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         uint256 quote = amm.quotePtForUnderlying(100 * 1e18);
         assertTrue(quote > 0);
@@ -207,7 +209,7 @@ contract YieldMarketAMMTest is Test {
     
     function test_QuoteUnderlyingForPt() public {
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         uint256 quote = amm.quoteUnderlyingForPt(100 * 1e18);
         assertTrue(quote > 0);
@@ -218,7 +220,7 @@ contract YieldMarketAMMTest is Test {
     
     function test_GetPtPrice() public {
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         uint256 price = amm.getPtPrice();
         // PT at 5% discount means price = 0.95
@@ -227,7 +229,7 @@ contract YieldMarketAMMTest is Test {
     
     function test_GetImpliedRate() public {
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         uint256 rate = amm.getImpliedRate();
         // Should be around 5% (0.05e18)
@@ -238,7 +240,7 @@ contract YieldMarketAMMTest is Test {
     
     function test_PriceConvergesAtMaturity() public {
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         uint256 priceBefore = amm.getPtPrice();
         
@@ -266,7 +268,7 @@ contract YieldMarketAMMTest is Test {
     
     function test_Swap_Expired() public {
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         vm.warp(maturity + 1);
         
@@ -280,25 +282,25 @@ contract YieldMarketAMMTest is Test {
         
         vm.prank(user1);
         vm.expectRevert(YieldMarketAMM.Expired.selector);
-        amm.addLiquidity(100 * 1e18, 95 * 1e18, 0);
+        amm.addLiquidity(100 * 1e18, 95 * 1e18, 0, 0);
     }
     
     function test_RemoveLiquidity_AfterExpiry() public {
         // Can still remove liquidity after expiry
         vm.prank(user1);
-        (uint256 lpTokens,,) = amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        (uint256 lpTokens,,) = amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         vm.warp(maturity + 1);
         
         vm.prank(user1);
-        amm.removeLiquidity(lpTokens, 0, 0); // Should work
+        amm.removeLiquidity(lpTokens, 0, 0, 0); // Should work
     }
     
     // ============ Fee Tests ============
     
     function test_SwapFee() public {
         vm.prank(user1);
-        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0);
+        amm.addLiquidity(10_000 * 1e18, 9_500 * 1e18, 0, 0);
         
         uint256 feeBefore = underlying.balanceOf(feeRecipient);
         

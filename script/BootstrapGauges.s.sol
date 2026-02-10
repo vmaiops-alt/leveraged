@@ -99,6 +99,14 @@ contract BootstrapGauges is Script {
         console.log("Pool:", pool);
         
         IGaugeController controller = IGaugeController(GAUGE_CONTROLLER);
+        
+        // Check for duplicate - iterate existing gauges
+        uint256 existingCount = controller.gaugeCount();
+        for (uint256 i = 0; i < existingCount; i++) {
+            (address existingPool,,,) = controller.gauges(i);
+            require(existingPool != pool, "Gauge already exists for this pool");
+        }
+        
         gaugeId = controller.addGauge(pool, name);
         
         console.log("Gauge ID:", gaugeId);

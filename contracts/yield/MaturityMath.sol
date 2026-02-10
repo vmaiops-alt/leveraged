@@ -72,20 +72,20 @@ library MaturityMath {
     
     /**
      * @notice Calculate present value of future yield
-     * @param futureValue Expected yield at maturity (18 decimals)
+     * @param fv Expected yield at maturity (18 decimals)
      * @param discountRate Discount rate (18 decimals)
      * @param timeToMaturity Seconds until maturity
      * @return presentValue Discounted present value (18 decimals)
      */
     function presentValue(
-        uint256 futureValue,
+        uint256 fv,
         uint256 discountRate,
         uint256 timeToMaturity
     ) internal pure returns (uint256) {
-        if (timeToMaturity == 0) return futureValue;
+        if (timeToMaturity == 0) return fv;
         
         uint256 discountFactor = (discountRate * timeToMaturity) / YEAR;
-        return (futureValue * PRECISION) / (PRECISION + discountFactor);
+        return (fv * PRECISION) / (PRECISION + discountFactor);
     }
     
     /**

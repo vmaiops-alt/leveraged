@@ -158,10 +158,11 @@ contract PerpVault is ERC20, ReentrancyGuard, Ownable {
         if (totalSupply() == 0) {
             vaultTokens = usdValue;
         } else {
+            require(totalAUM > 0, "Invalid AUM state");
             vaultTokens = (usdValue * totalSupply()) / totalAUM;
         }
         
-        require(vaultTokens > 0, "Deposit too small");
+        require(vaultTokens > 0, "Deposit too small - zero tokens would be minted");
         require(vaultTokens >= _minVaultTokens, "Slippage");
         
         asset.totalDeposited += _amount;
@@ -289,10 +290,13 @@ contract PerpVault is ERC20, ReentrancyGuard, Ownable {
     // ============ Internal Functions ============
     
     function _collectFees(uint256 _usdAmount) internal {
+        if (_usdAmount == 0) return;
+        
         uint256 lpShare = (_usdAmount * lpFeeShare) / BASIS_POINTS;
         
-        if (totalSupply() > 0) {
-            feePerToken += (lpShare * 1e18) / totalSupply();
+        uint256 supply = totalSupply();
+        if (supply > 0) {
+            feePerToken += (lpShare * 1e18) / supply;
         }
         
         accumulatedFees += _usdAmount;

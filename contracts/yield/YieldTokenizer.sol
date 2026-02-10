@@ -140,7 +140,7 @@ contract YieldTokenizer is ReentrancyGuard, Ownable {
      * @param _marketId Market ID
      * @param _amount Amount of underlying to deposit
      */
-    function deposit(bytes32 _marketId, uint256 _amount) external nonReentrant returns (uint256 ptAmount, uint256 ytAmount) {
+    function deposit(bytes32 _marketId, uint256 _amount, uint256 _minPtAmount) external nonReentrant returns (uint256 ptAmount, uint256 ytAmount) {
         if (_amount == 0) revert ZeroAmount();
         
         Market storage market = markets[_marketId];
@@ -166,12 +166,23 @@ contract YieldTokenizer is ReentrancyGuard, Ownable {
         ptAmount = netAmount;
         ytAmount = netAmount;
         
+        // Slippage protection
+        require(ptAmount >= _minPtAmount, "Slippage: insufficient PT output");
+        
         PrincipalToken(market.principalToken).mint(msg.sender, ptAmount);
         YieldToken(market.yieldToken).mint(msg.sender, ytAmount);
         
         market.totalDeposited += netAmount;
         
         emit Deposited(_marketId, msg.sender, _amount, ptAmount, ytAmount);
+    }
+    
+    /**
+     * @notice Deposit underlying and receive PT + YT (no slippage protection)
+     * @dev Convenience function for backwards compatibility
+     */
+    function deposit(bytes32 _marketId, uint256 _amount) external nonReentrant returns (uint256 ptAmount, uint256 ytAmount) {
+        return this.deposit(_marketId, _amount, 0);
     }
     
     /**

@@ -38,13 +38,13 @@ contract BootstrapLending is Script {
     uint256 constant USDT_AMOUNT = 100 * 1e18;
     
     // BTCB: 0.001 BTC (~$60 at current prices)
-    uint256 constant BTCB_AMOUNT = 0.001 * 1e18;
+    uint256 constant BTCB_AMOUNT = 1e15; // 0.001 * 1e18
     
     // ETH: 0.03 ETH (~$100 at current prices)
-    uint256 constant ETH_AMOUNT = 0.03 * 1e18;
+    uint256 constant ETH_AMOUNT = 3e16; // 0.03 * 1e18
     
     // BNB: 0.15 BNB (~$100 at current prices)
-    uint256 constant BNB_AMOUNT = 0.15 * 1e18;
+    uint256 constant BNB_AMOUNT = 15e16; // 0.15 * 1e18
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
