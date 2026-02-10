@@ -5,13 +5,14 @@ import "../interfaces/ILeveragedVault.sol";
 import "../interfaces/ILendingPool.sol";
 import "../interfaces/IPriceOracle.sol";
 import "../interfaces/IValueTracker.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title LeveragedVault
  * @notice Main vault contract for leveraged yield farming
  * @dev Handles deposits, leverage, and position management
  */
-contract LeveragedVault is ILeveragedVault {
+contract LeveragedVault is ILeveragedVault, ReentrancyGuard {
     
     // ============ Constants ============
     
@@ -115,7 +116,7 @@ contract LeveragedVault is ILeveragedVault {
         address asset,
         uint256 amount,
         uint256 leverage
-    ) external override whenNotPaused returns (uint256 positionId) {
+    ) external override nonReentrant whenNotPaused returns (uint256 positionId) {
         // Validations
         require(supportedAssets[asset], "Asset not supported");
         require(amount > 0, "Zero amount");
@@ -185,6 +186,7 @@ contract LeveragedVault is ILeveragedVault {
     function closePosition(uint256 positionId) 
         external 
         override 
+        nonReentrant
         onlyPositionOwner(positionId) 
     {
         Position storage position = positions[positionId];
@@ -249,6 +251,7 @@ contract LeveragedVault is ILeveragedVault {
     function addCollateral(uint256 positionId, uint256 amount) 
         external 
         override 
+        nonReentrant
         onlyPositionOwner(positionId)
         whenNotPaused 
     {
@@ -270,7 +273,7 @@ contract LeveragedVault is ILeveragedVault {
      * @notice Liquidate an unhealthy position
      * @param positionId The position to liquidate
      */
-    function liquidate(uint256 positionId) external whenNotPaused {
+    function liquidate(uint256 positionId) external nonReentrant whenNotPaused {
         Position storage position = positions[positionId];
         require(position.isActive, "Position not active");
         require(isLiquidatable(positionId), "Not liquidatable");

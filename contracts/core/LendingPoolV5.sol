@@ -87,9 +87,11 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
     // User state
     mapping(address => UserPosition) public userPositions;
     mapping(address => uint256) public userShares; // Legacy compatibility
+    mapping(address => uint256) public userBorrowed; // Per-user debt tracking
     
     // Flash loan state
     bool private _flashLoanActive;
+    bytes32 private _expectedCallbackHash;
     
     // ============ Events ============
     
@@ -408,6 +410,7 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
         require(amount <= available, "Insufficient liquidity");
         
         totalBorrowed += amount;
+        userBorrowed[vault] += amount;
         
         asset.safeTransfer(vault, amount);
         
@@ -425,7 +428,23 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
             totalBorrowed -= amount;
         }
         
+        // Update per-user debt
+        if (amount > userBorrowed[vault]) {
+            userBorrowed[vault] = 0;
+        } else {
+            userBorrowed[vault] -= amount;
+        }
+        
         emit Repaid(vault, amount);
+    }
+    
+    /**
+     * @notice Get borrowed amount for a specific user
+     * @param user User address
+     * @return Amount borrowed by user
+     */
+    function getBorrowedAmount(address user) external view returns (uint256) {
+        return userBorrowed[user];
     }
     
     // ============ Flash Loan Functions ============
@@ -444,6 +463,13 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
         require(!_flashLoanActive, "Flash loan in progress");
         require(amount > 0, "Zero amount");
         
+        // Verify receiver is a contract (not EOA)
+        uint256 codeSize;
+        assembly {
+            codeSize := extcodesize(receiver)
+        }
+        require(codeSize > 0, "Receiver must be a contract");
+        
         uint256 available = asset.balanceOf(address(this));
         require(amount <= available, "Insufficient liquidity");
         
@@ -451,6 +477,9 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
         
         uint256 fee = (amount * FLASH_LOAN_FEE) / BPS_DENOMINATOR;
         uint256 balanceBefore = asset.balanceOf(address(this));
+        
+        // Generate expected callback hash for verification
+        _expectedCallbackHash = keccak256(abi.encodePacked(receiver, amount, fee, msg.sender));
         
         // Transfer to receiver
         asset.safeTransfer(receiver, amount);
@@ -464,6 +493,9 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
             params
         );
         require(success, "Flash loan execution failed");
+        
+        // Clear callback hash
+        _expectedCallbackHash = bytes32(0);
         
         // Verify repayment
         uint256 balanceAfter = asset.balanceOf(address(this));

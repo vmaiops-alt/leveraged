@@ -232,9 +232,12 @@ contract FeeCollector is IFeeCollector {
      * @dev Can be called by anyone (keeper incentivized by gas refund from treasury)
      */
     function distributeFees() external override whenNotPaused {
+        uint256 length = tokenList.length;
+        require(length <= 50, "Use distributeFeesPages for >50 tokens");
+        
         bool distributed = false;
         
-        for (uint256 i = 0; i < tokenList.length; i++) {
+        for (uint256 i = 0; i < length; i++) {
             address token = tokenList[i];
             uint256 pending = pendingFees[token];
             
@@ -246,6 +249,37 @@ contract FeeCollector is IFeeCollector {
         }
         
         require(distributed, "Nothing to distribute");
+    }
+    
+    /**
+     * @notice Distribute fees with pagination for large token lists
+     * @param startIndex Starting index in token list
+     * @param count Number of tokens to process
+     */
+    function distributeFeesPaginated(uint256 startIndex, uint256 count) external whenNotPaused {
+        uint256 length = tokenList.length;
+        require(startIndex < length, "Invalid start index");
+        require(count > 0 && count <= 50, "Invalid count");
+        
+        uint256 endIndex = startIndex + count;
+        if (endIndex > length) {
+            endIndex = length;
+        }
+        
+        bool distributed = false;
+        
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            address token = tokenList[i];
+            uint256 pending = pendingFees[token];
+            
+            if (pending >= MIN_DISTRIBUTION_AMOUNT) {
+                _distributeToken(token, pending);
+                pendingFees[token] = 0;
+                distributed = true;
+            }
+        }
+        
+        require(distributed, "Nothing to distribute in range");
     }
     
     /**
@@ -278,9 +312,49 @@ contract FeeCollector is IFeeCollector {
      * @return total Total pending fees (approximate, assumes same decimals)
      */
     function getTotalPendingFees() external view returns (uint256 total) {
-        for (uint256 i = 0; i < tokenList.length; i++) {
+        uint256 length = tokenList.length;
+        require(length <= 100, "Use getTotalPendingFeesPaginated");
+        
+        for (uint256 i = 0; i < length; i++) {
             total += pendingFees[tokenList[i]];
         }
+    }
+    
+    /**
+     * @notice Get total pending fees with pagination
+     * @param startIndex Starting index
+     * @param count Number of tokens to sum
+     * @return total Total pending fees for range
+     * @return nextIndex Next index to continue (0 if done)
+     */
+    function getTotalPendingFeesPaginated(uint256 startIndex, uint256 count) 
+        external 
+        view 
+        returns (uint256 total, uint256 nextIndex) 
+    {
+        uint256 length = tokenList.length;
+        if (startIndex >= length) {
+            return (0, 0);
+        }
+        
+        uint256 endIndex = startIndex + count;
+        if (endIndex > length) {
+            endIndex = length;
+            nextIndex = 0;
+        } else {
+            nextIndex = endIndex;
+        }
+        
+        for (uint256 i = startIndex; i < endIndex; i++) {
+            total += pendingFees[tokenList[i]];
+        }
+    }
+    
+    /**
+     * @notice Get token list length for pagination
+     */
+    function getTokenListLength() external view returns (uint256) {
+        return tokenList.length;
     }
     
     /**

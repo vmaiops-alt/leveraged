@@ -27,6 +27,11 @@ interface IVenusRouter {
         address to,
         uint256 deadline
     ) external returns (uint256[] memory amounts);
+    
+    function getAmountsOut(
+        uint256 amountIn,
+        address[] calldata path
+    ) external view returns (uint256[] memory amounts);
 }
 
 /**
@@ -52,6 +57,10 @@ contract VenusStrategy is BaseStrategy {
     uint256 public constant HARVEST_INTERVAL = 1 hours;
     uint256 public constant BLOCKS_PER_YEAR = 10512000; // BSC ~3s blocks
     uint256 public constant BPS = 10000;
+    uint256 public constant MIN_SLIPPAGE_BPS = 50; // 0.5% minimum slippage tolerance
+    
+    /// @notice Slippage tolerance for swaps in BPS (default 1%)
+    uint256 public slippageTolerance = 100;
     
     // ============ Constructor ============
     
@@ -161,9 +170,14 @@ contract VenusStrategy is BaseStrategy {
             path[2] = asset;
         }
         
+        // Calculate minimum output with slippage protection
+        uint256[] memory expectedAmounts = router.getAmountsOut(xvsBalance, path);
+        uint256 expectedOut = expectedAmounts[expectedAmounts.length - 1];
+        uint256 minAmountOut = (expectedOut * (BPS - slippageTolerance)) / BPS;
+        
         uint256[] memory amounts = router.swapExactTokensForTokens(
             xvsBalance,
-            0, // Accept any amount (should add slippage)
+            minAmountOut, // Slippage protected
             path,
             address(this),
             block.timestamp
@@ -180,6 +194,16 @@ contract VenusStrategy is BaseStrategy {
         
         lastHarvest = block.timestamp;
         emit Harvested(harvested);
+    }
+    
+    /**
+     * @notice Set slippage tolerance (owner only)
+     * @param _slippageTolerance Slippage tolerance in BPS (min 0.5%, max 5%)
+     */
+    function setSlippageTolerance(uint256 _slippageTolerance) external onlyOwner {
+        require(_slippageTolerance >= MIN_SLIPPAGE_BPS, "Slippage too low");
+        require(_slippageTolerance <= 500, "Slippage too high"); // Max 5%
+        slippageTolerance = _slippageTolerance;
     }
     
     // ============ View Functions ============

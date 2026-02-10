@@ -32,6 +32,10 @@ contract VenusBNBVault is ReentrancyGuard, Ownable {
     uint256 public withdrawFee = 10;         // 0.1%
     address public treasury;
     
+    // Slippage protection
+    uint256 public constant MIN_SLIPPAGE_BPS = 50; // 0.5% minimum
+    uint256 public slippageTolerance = 100;        // 1% default
+    
     // Events
     event Deposit(address indexed user, uint256 amount, uint256 shares);
     event Withdraw(address indexed user, uint256 amount, uint256 shares);
@@ -114,9 +118,13 @@ contract VenusBNBVault is ReentrancyGuard, Ownable {
         
         uint256 bnbBefore = address(this).balance;
         
+        // Calculate minimum output with slippage protection
+        uint256[] memory expectedAmounts = router.getAmountsOut(xvsBal, path);
+        uint256 minAmountOut = (expectedAmounts[1] * (10000 - slippageTolerance)) / 10000;
+        
         router.swapExactTokensForETH(
             xvsBal,
-            0,
+            minAmountOut,  // Slippage protected
             path,
             address(this),
             block.timestamp
@@ -178,6 +186,12 @@ contract VenusBNBVault is ReentrancyGuard, Ownable {
     
     function setTreasury(address _treasury) external onlyOwner {
         treasury = _treasury;
+    }
+    
+    function setSlippageTolerance(uint256 _slippageTolerance) external onlyOwner {
+        require(_slippageTolerance >= MIN_SLIPPAGE_BPS, "Slippage too low");
+        require(_slippageTolerance <= 500, "Slippage too high"); // Max 5%
+        slippageTolerance = _slippageTolerance;
     }
     
     // Emergency

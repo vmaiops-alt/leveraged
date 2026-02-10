@@ -247,39 +247,59 @@ contract Liquidator is ILiquidator {
         override 
         returns (uint256[] memory) 
     {
-        require(maxPositions > 0 && maxPositions <= MAX_BATCH_SIZE, "Invalid maxPositions");
+        (uint256[] memory result, ) = getLiquidatablePositionsPaginated(0, maxPositions, 500);
+        return result;
+    }
+    
+    /**
+     * @notice Get liquidatable positions with pagination (gas-efficient)
+     * @param startIndex Starting position index for pagination
+     * @param maxResults Maximum results to return
+     * @param maxScan Maximum positions to scan (gas limit protection)
+     * @return positionIds Array of liquidatable position IDs
+     * @return nextIndex Next index to continue from (0 if done)
+     */
+    function getLiquidatablePositionsPaginated(
+        uint256 startIndex,
+        uint256 maxResults,
+        uint256 maxScan
+    ) public view returns (uint256[] memory, uint256 nextIndex) {
+        require(maxResults > 0 && maxResults <= MAX_BATCH_SIZE, "Invalid maxResults");
+        require(maxScan > 0 && maxScan <= 1000, "Invalid maxScan");
         
-        // Get total positions from vault (we'll scan from 0 to nextPositionId)
-        // Note: This is a simplified scan - production would use subgraph/indexer
-        uint256[] memory tempPositions = new uint256[](maxPositions);
+        uint256[] memory tempPositions = new uint256[](maxResults);
         uint256 count = 0;
+        uint256 scanned = 0;
+        uint256 i = startIndex;
         
-        // Scan positions (starting from 0)
-        // This is gas-intensive - in production, use off-chain indexing
-        for (uint256 i = 0; count < maxPositions; i++) {
-            // Try to get position (will revert if doesn't exist)
+        // Scan with gas limits
+        while (count < maxResults && scanned < maxScan) {
             try vault.getPosition(i) returns (ILeveragedVault.Position memory position) {
-                if (!position.isActive) {
-                    continue;
-                }
-                
-                if (vault.isLiquidatable(i)) {
+                if (position.isActive && vault.isLiquidatable(i)) {
                     tempPositions[count] = i;
                     count++;
                 }
             } catch {
-                // No more positions
+                // No more positions exist
+                nextIndex = 0;
                 break;
             }
+            i++;
+            scanned++;
+        }
+        
+        // Set next index if we hit limits before finishing
+        if (scanned >= maxScan && count < maxResults) {
+            nextIndex = i;
         }
         
         // Trim array to actual count
         uint256[] memory result = new uint256[](count);
-        for (uint256 i = 0; i < count; i++) {
-            result[i] = tempPositions[i];
+        for (uint256 j = 0; j < count; j++) {
+            result[j] = tempPositions[j];
         }
         
-        return result;
+        return (result, nextIndex);
     }
     
     /**
