@@ -1,69 +1,120 @@
 ---
-sidebar_position: 1
+sidebar_position: 3
 ---
 # Fee Discounts
 
-Stake $LVG to reduce your trading fees.
+Stake $LVG to reduce your trading fees by up to 50%.
 
-## Discount Tiers
+## Staking Tiers
 
-| Tier | LVG Staked | Discount | Effective Fee |
-|------|------------|----------|---------------|
-| None | 0 | 0% | 25.00% |
-| 🥉 Bronze | 1,000+ | 5% | 23.75% |
-| 🥈 Silver | 5,000+ | 10% | 22.50% |
-| 🥇 Gold | 25,000+ | 15% | 21.25% |
-| 💎 Platinum | 100,000+ | 20% | 20.00% |
-| 👑 Diamond | 500,000+ | 25% | 18.75% |
+| Tier | LVG Staked | Fee Reduction | Price Fee | Performance Fee |
+|------|------------|---------------|-----------|-----------------|
+| None | 0 | 0% | 25.00% | 10.00% |
+| 🥉 Bronze | 1,000+ | 20% | 20.00% | 8.00% |
+| 🥈 Silver | 5,000+ | 30% | 17.50% | 7.00% |
+| 🥇 Gold | 10,000+ | 40% | 15.00% | 6.00% |
+| 💎 Diamond | 50,000+ | 50% | 12.50% | 5.00% |
 
 ## How It Works
 
-The discount applies to the **25% value increase fee**.
+The discount applies to **all percentage-based fees**:
+- Price Appreciation Fee (25% base)
+- Performance Fee (10% base)
 
-### Example: Gold Tier (15% discount)
+Fixed fees (0.1% open/close) are not reduced.
+
+### Example: Gold Tier (40% reduction)
 
 ```
-Position Profit: $1,000
-Base Fee (25%): $250
-Discount (15%): -$37.50
-─────────────────────
-Final Fee: $212.50
-You Save: $37.50
+Position closes with:
+- BNB Price Gain: $1,000
+- Farming Profit: $200
+
+Without Staking:
+├─ Price Fee (25%): $250
+├─ Performance Fee (10%): $20
+└─ Total Fees: $270
+
+With 10K LVG (40% off):
+├─ Price Fee (15%): $150
+├─ Performance Fee (6%): $12
+└─ Total Fees: $162
+
+You Save: $108 (40%)
 ```
 
 ## Savings Calculator
 
-| Profit | No Stake | Bronze | Silver | Gold | Platinum | Diamond |
-|--------|----------|--------|--------|------|----------|---------|
-| $100 | $25 | $23.75 | $22.50 | $21.25 | $20.00 | $18.75 |
-| $500 | $125 | $118.75 | $112.50 | $106.25 | $100.00 | $93.75 |
-| $1,000 | $250 | $237.50 | $225.00 | $212.50 | $200.00 | $187.50 |
-| $5,000 | $1,250 | $1,187.50 | $1,125.00 | $1,062.50 | $1,000.00 | $937.50 |
-| $10,000 | $2,500 | $2,375.00 | $2,250.00 | $2,125.00 | $2,000.00 | $1,875.00 |
+### On $1,000 Price Appreciation
+
+| Tier | Base Fee | Discounted | You Save |
+|------|----------|------------|----------|
+| None | $250 | $250 | $0 |
+| Bronze | $250 | $200 | $50 |
+| Silver | $250 | $175 | $75 |
+| Gold | $250 | $150 | $100 |
+| Diamond | $250 | $125 | $125 |
+
+### Annual Savings (Active Trader)
+
+Assuming $10,000/month in gains:
+
+| Tier | Annual Fees | With Staking | Saved |
+|------|-------------|--------------|-------|
+| None | $30,000 | $30,000 | $0 |
+| Bronze | $30,000 | $24,000 | $6,000 |
+| Silver | $30,000 | $21,000 | $9,000 |
+| Gold | $30,000 | $18,000 | $12,000 |
+| Diamond | $30,000 | $15,000 | $15,000 |
 
 ## ROI Analysis
 
-How much trading volume to break even on staking?
-
-### Gold Tier (25,000 LVG)
+### Gold Tier (10,000 LVG)
 
 Assuming LVG = $0.10:
-- Stake cost: $2,500
-- Discount per $1,000 profit: $37.50
-- Break-even: ~$67,000 in profits
+- Stake cost: $1,000
+- Savings per $1,000 gain: $100
+- Break-even: $10,000 in gains
+- Plus: ~50% staking APR
 
-With additional staking APR (~50%), break-even is much faster.
+### Diamond Tier (50,000 LVG)
+
+Assuming LVG = $0.10:
+- Stake cost: $5,000
+- Savings per $1,000 gain: $125
+- Break-even: $40,000 in gains
+- Plus: ~50% staking APR
+
+## How to Stake
+
+1. Go to [Stake](https://frontend-vite-gilt.vercel.app) → Stake tab
+2. Approve LVG tokens
+3. Enter amount to stake
+4. Confirm transaction
+5. Discount applies immediately
 
 ## Checking Your Tier
 
-### Via App
-1. Go to [Stake](https://app.leveraged.finance/stake)
-2. See "Your Fee Discount" card
-
 ### Via Contract
+
 ```solidity
+// Get discount percentage (in basis points)
 uint256 discount = stakingContract.getFeeDiscount(yourAddress);
-// Returns discount in BPS (500 = 5%)
+// 2000 = 20%, 3000 = 30%, etc.
+```
+
+### Discount Calculation
+
+```solidity
+function getFeeDiscount(address user) public view returns (uint256) {
+    uint256 staked = stakedAmount[user];
+    
+    if (staked >= 50_000e18) return 5000; // 50%
+    if (staked >= 10_000e18) return 4000; // 40%
+    if (staked >= 5_000e18) return 3000;  // 30%
+    if (staked >= 1_000e18) return 2000;  // 20%
+    return 0;
+}
 ```
 
 ## Tier Changes
@@ -74,19 +125,25 @@ Stake more LVG → Tier upgrades immediately.
 ### Downgrading
 Unstake LVG → Tier downgrades immediately.
 
-Discount applies to positions **closed after** tier change, not open positions.
+**Important:** Discount applies based on your tier when **closing** the position, not when opening.
 
-## Combining with Other Benefits
+## Combining Benefits
 
-Fee discounts stack with future promotions but have a minimum fee floor of 15%.
+- ✅ Fee discounts apply to all positions
+- ✅ Staking APR earned simultaneously
+- ✅ Future governance rights
+- ✅ Protocol revenue share (coming soon)
 
 ## FAQ
 
-**Q: Does the discount apply to entry fees?**
-A: No, only to the 25% value increase fee.
+**Q: Does staking lock my tokens?**
+A: No lock period. Unstake anytime (instant).
 
 **Q: What if I stake after opening a position?**
-A: The discount applies when you close, based on your tier at closing time.
+A: Discount applies when you close, based on tier at closing time.
 
-**Q: Can I get more than 25% discount?**
-A: Currently no. Diamond is the maximum tier.
+**Q: Can I get more than 50% discount?**
+A: No, Diamond (50K LVG) is the maximum tier.
+
+**Q: Do open/close fees get discounted?**
+A: No, only percentage-based profit fees are reduced.

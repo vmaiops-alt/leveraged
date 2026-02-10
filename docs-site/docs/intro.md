@@ -6,68 +6,121 @@ title: Introduction
 
 # LEVERAGED
 
-> Leveraged Yield Farming Platform with up to 5x Leverage
+> Leveraged Yield Farming on PancakeSwap with up to 3x Leverage
 
 ## What is LEVERAGED?
 
-**LEVERAGED** is a decentralized leveraged trading platform built on BNB Smart Chain (BSC). It enables users to amplify their exposure to crypto assets like BTC, ETH, and BNB with up to **5x leverage** while featuring a revolutionary fee model.
+**LEVERAGED** is a decentralized leveraged yield farming platform built on BNB Smart Chain (BSC). It enables users to amplify their PancakeSwap farming returns with up to **3x leverage** while earning CAKE rewards and trading fees.
 
-Unlike traditional leveraged trading platforms that charge funding rates or high trading fees, LEVERAGED only charges **25% of your value increase** when you close a profitable position. If your position is at a loss, you pay nothing.
+Deposit BNB, borrow USDT from our lending pool, and farm LP tokens with amplified exposure. Our smart contracts handle all the complexity – swapping, LP creation, and staking on MasterChef V2.
 
 ## Why LEVERAGED?
 
-### 🚀 Simple Leverage
+### 🌾 Amplified Farming
 
-No complicated perpetuals or funding rates. Just deposit stablecoins, choose your leverage (1x-5x), and get exposure to your chosen asset.
+Turn 1 BNB into 3 BNB worth of farming exposure. Earn more CAKE rewards and trading fees without selling your BNB.
 
 ### 💰 Fair Fee Model
 
-Traditional platforms charge you regardless of whether you win or lose. We only take a cut when you profit.
+- **0.1%** open fee
+- **0.1%** close fee
+- **10%** on farming profits
+- **25%** on BNB price gains (only when profitable)
 
-### 🏦 Earn While You Wait
+No funding rates. No fees on losses.
 
-Don't want to trade? Deposit into our lending pool and earn yield from traders borrowing your liquidity.
+### 🏦 Passive Lending
 
-### 🪙 $LVG Benefits
+Don't want leverage? Deposit USDT into our lending pool and earn **~10-50% APY** from borrowers.
 
-Stake our native token to reduce fees by up to 25% and earn a share of protocol revenue.
+### 🪙 LVG Benefits
 
-## Supported Assets
+Stake $LVG to reduce fees by up to **50%** and earn protocol revenue.
 
-| Asset | Symbol | Max Leverage |
-|-------|--------|--------------|
-| Bitcoin | BTC | 5x |
-| Ethereum | ETH | 5x |
-| BNB | BNB | 5x |
+## Supported Pools
 
-*More assets coming soon*
+| Pool | Assets | Max Leverage | Base APY |
+|------|--------|--------------|----------|
+| USDT-BNB | USDT/WBNB | 3x | ~9% |
+| CAKE-BNB | CAKE/WBNB | 3x | ~20% |
+| ETH-BNB | ETH/WBNB | 3x | ~7% |
+| BTCB-BNB | BTCB/WBNB | 3x | ~5% |
+
+*APYs from PancakeSwap V2 MasterChef*
+
+## Fee Structure
+
+| Fee | Rate | When |
+|-----|------|------|
+| Open | 0.1% | Opening position |
+| Close | 0.1% | Closing position |
+| Performance | 10% | On farming profits |
+| Price Appreciation | 25% | On BNB price gains |
+| Liquidation | 1% | If liquidated |
+
+**Stake LVG to reduce fees:**
+
+| Staked | Discount |
+|--------|----------|
+| 1,000 LVG | 20% off |
+| 5,000 LVG | 30% off |
+| 10,000 LVG | 40% off |
+| 50,000 LVG | 50% off |
 
 ## Key Metrics
 
 | Metric | Value |
 |--------|-------|
-| Chain | BNB Smart Chain |
-| Max Leverage | 5x |
-| Value Fee | 25% |
-| Entry Fee | 0.1% |
-| Liquidation Threshold | 110% |
+| Chain | BNB Smart Chain (56) |
+| Max Leverage | 3x |
+| Liquidation Threshold | 110% Health Factor |
+| Insurance Pool | 1% of interest |
+| Liquidation Bonus | 5% |
+
+## Smart Contracts
+
+| Contract | Address |
+|----------|---------|
+| LeveragedFarmV5 | `0xdcfFA96A8440C9d027C530FCA5b93e695f6c0574` |
+| LendingPoolV4 | `0xC57fecAa960Cb9CA70f8C558153314ed17b64c02` |
+| LVGToken | `0x17D2b7C19578478a867b68eAdcE61f0c546f00Ea` |
+| LVGStaking | `0xE6f9eDA0344e0092a6c6Bb8f6D29112646821cf2` |
 
 ## Quick Links
 
-- 🚀 **[Launch App](https://app.leveraged.finance)** - Start trading
-- 📖 **[How It Works](/overview/how-it-works)** - Learn the basics
-- 💎 **[$LVG Token](/token/tokenomics)** - Tokenomics and staking
-- 🔧 **[Developers](/developers/getting-started)** - Build integrations
+- 🚀 **[Launch App](https://frontend-vite-gilt.vercel.app)** – Start farming
+- 📖 **[How It Works](/overview/how-it-works)** – Learn the basics
+- 💸 **[Fee Structure](/protocol/fees)** – Understand costs
+- 💎 **[$LVG Token](/token/tokenomics)** – Staking and discounts
+- 🔒 **[Security](/security/risks)** – Risks and audits
 
-## Community
+## How It Works
 
-- 🐦 [Twitter](https://twitter.com/leveraged_fi)
-- 💬 [Discord](https://discord.gg/leveraged)
-- 📢 [Telegram](https://t.me/leveraged_fi)
-- 📝 [Medium](https://medium.com/@leveraged)
+```
+┌─────────────┐     Deposit BNB      ┌──────────────┐
+│    User     │ ──────────────────▶  │  Leveraged   │
+│             │                      │    Farm      │
+└─────────────┘                      └──────┬───────┘
+                                            │
+                    ┌───────────────────────┼───────────────────────┐
+                    │                       │                       │
+                    ▼                       ▼                       ▼
+            ┌──────────────┐       ┌──────────────┐       ┌──────────────┐
+            │   Lending    │       │  PancakeSwap │       │   MasterChef │
+            │    Pool      │       │   Router     │       │      V2      │
+            │  (Borrow)    │       │   (Swap)     │       │   (Stake)    │
+            └──────────────┘       └──────────────┘       └──────────────┘
+```
+
+1. **Deposit** – User deposits BNB with chosen leverage
+2. **Borrow** – Contract borrows USDT for leverage
+3. **Swap** – BNB swapped to LP tokens via PancakeSwap
+4. **Stake** – LP tokens staked in MasterChef V2
+5. **Earn** – CAKE rewards + trading fees accumulate
+6. **Close** – Unstake, swap back, repay loan, return profit
 
 ---
 
 :::warning Risk Warning
-Leveraged trading involves significant risk. You can lose your entire deposit. Only trade with funds you can afford to lose. This is not financial advice.
+Leveraged farming involves significant risk. Positions can be liquidated if health factor drops below 110%. Only farm with funds you can afford to lose. This is not financial advice.
 :::

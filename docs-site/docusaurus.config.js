@@ -4,11 +4,11 @@ const {themes} = require('prism-react-renderer');
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'LEVERAGED',
-  tagline: 'Leveraged Yield Farming with up to 5x Leverage',
+  tagline: 'Leveraged Yield Farming on PancakeSwap with up to 3x Leverage',
   favicon: 'img/favicon.ico',
 
-  url: 'https://vmaiops-alt.github.io',
-  baseUrl: '/leveraged/',
+  url: 'https://leveraged-docs.vercel.app',
+  baseUrl: '/',
 
   organizationName: 'leveraged-finance',
   projectName: 'leveraged',
@@ -57,7 +57,7 @@ const config = {
             label: 'Docs',
           },
           {
-            href: 'https://app.leveraged.finance',
+            href: 'https://frontend-vite-gilt.vercel.app',
             label: 'Launch App',
             position: 'right',
           },
