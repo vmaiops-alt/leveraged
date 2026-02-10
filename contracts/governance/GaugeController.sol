@@ -179,6 +179,70 @@ contract GaugeController is Ownable {
         emit VoteReset(msg.sender, _gaugeId);
     }
     
+    /**
+     * @notice Refresh a user's vote to reflect current veLVG balance
+     * @dev Can be called by anyone to clean up stale votes from expired locks
+     * @param _user Address of the user whose vote to refresh
+     * @param _gaugeId Gauge ID to refresh vote for
+     */
+    function refreshVote(address _user, uint256 _gaugeId) external {
+        if (_gaugeId >= gaugeCount) revert GaugeNotFound();
+        
+        VoteInfo storage voteInfo = userVotes[_user][_gaugeId];
+        if (voteInfo.weight == 0) return; // No vote to refresh
+        
+        // Get current veLVG balance (may be 0 if lock expired)
+        uint256 currentVotePower = votingEscrow.balanceOf(_user);
+        
+        // Calculate old and new vote contributions
+        uint256 oldVotePower = voteInfo.votePowerAtVote;
+        uint256 oldVotes = (oldVotePower * voteInfo.weight) / 10000;
+        uint256 newVotes = (currentVotePower * voteInfo.weight) / 10000;
+        
+        // Update gauge and total votes
+        gaugeVotes[_gaugeId] = gaugeVotes[_gaugeId] - oldVotes + newVotes;
+        totalVotes = totalVotes - oldVotes + newVotes;
+        
+        // Update stored vote power
+        voteInfo.votePowerAtVote = currentVotePower;
+        
+        // If user has no vote power left, clear their vote allocation
+        if (currentVotePower == 0) {
+            userVotePowerUsed[_user] -= voteInfo.weight;
+            voteInfo.weight = 0;
+            emit VoteReset(_user, _gaugeId);
+        } else {
+            emit Voted(_user, _gaugeId, voteInfo.weight);
+        }
+    }
+    
+    /**
+     * @notice Batch refresh votes for multiple users on a gauge
+     * @dev Useful for keepers to clean up stale votes efficiently
+     */
+    function refreshVotes(address[] calldata _users, uint256 _gaugeId) external {
+        for (uint256 i = 0; i < _users.length; i++) {
+            // Inline refresh logic to save gas on external calls
+            VoteInfo storage voteInfo = userVotes[_users[i]][_gaugeId];
+            if (voteInfo.weight == 0) continue;
+            
+            uint256 currentVotePower = votingEscrow.balanceOf(_users[i]);
+            uint256 oldVotePower = voteInfo.votePowerAtVote;
+            uint256 oldVotes = (oldVotePower * voteInfo.weight) / 10000;
+            uint256 newVotes = (currentVotePower * voteInfo.weight) / 10000;
+            
+            gaugeVotes[_gaugeId] = gaugeVotes[_gaugeId] - oldVotes + newVotes;
+            totalVotes = totalVotes - oldVotes + newVotes;
+            voteInfo.votePowerAtVote = currentVotePower;
+            
+            if (currentVotePower == 0) {
+                userVotePowerUsed[_users[i]] -= voteInfo.weight;
+                voteInfo.weight = 0;
+                emit VoteReset(_users[i], _gaugeId);
+            }
+        }
+    }
+    
     // ============ View Functions ============
     
     /**
