@@ -189,6 +189,7 @@ contract LendingPoolV5 is ReentrancyGuard {
         require(ltv <= 9900, "LTV too high");
         require(liquidationThreshold > ltv, "Invalid threshold");
         require(liquidationBonus <= 1000, "Bonus too high");
+        require(nextEModeCategoryId < 255, "Max categories reached");
         
         categoryId = nextEModeCategoryId++;
         

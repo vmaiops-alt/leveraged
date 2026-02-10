@@ -145,9 +145,12 @@ contract PrincipalToken is ERC20, ERC20Permit, Ownable {
      */
     function getImpliedYield(uint256 _ptPrice) external view returns (uint256 annualizedYield) {
         if (block.timestamp >= maturity) return 0;
+        if (_ptPrice == 0) return type(uint256).max; // Infinite yield if price is zero
         if (_ptPrice >= 1e18) return 0;
         
         uint256 timeToMat = maturity - block.timestamp;
+        if (timeToMat == 0) return 0;
+        
         uint256 discount = 1e18 - _ptPrice;
         
         // Annualized yield = (discount / price) * (365 days / timeToMaturity) * 10000 (bps)

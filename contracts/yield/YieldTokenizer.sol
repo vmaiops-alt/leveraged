@@ -64,6 +64,7 @@ contract YieldTokenizer is ReentrancyGuard, Ownable {
     event Redeemed(bytes32 indexed marketId, address indexed user, uint256 ptBurned, uint256 ytBurned, uint256 underlying);
     event MaturityRedeemed(bytes32 indexed marketId, address indexed user, uint256 ptBurned, uint256 underlying);
     event YieldHarvested(bytes32 indexed marketId, uint256 yieldAmount);
+    event BadDebt(bytes32 indexed marketId, address indexed user, uint256 shortfall);
     
     // ============ Errors ============
     
@@ -225,13 +226,15 @@ contract YieldTokenizer is ReentrancyGuard, Ownable {
         // Return underlying 1:1
         underlyingAmount = _amount;
         
-        // Note: If totalDeposited < underlyingAmount, there's bad debt
-        // This shouldn't happen in normal operation
-        if (market.totalDeposited >= underlyingAmount) {
-            market.totalDeposited -= underlyingAmount;
-        } else {
+        // Check for bad debt scenario
+        if (market.totalDeposited < underlyingAmount) {
+            // Bad debt exists - user receives less than expected
+            uint256 shortfall = underlyingAmount - market.totalDeposited;
             underlyingAmount = market.totalDeposited;
             market.totalDeposited = 0;
+            emit BadDebt(_marketId, msg.sender, shortfall);
+        } else {
+            market.totalDeposited -= underlyingAmount;
         }
         
         IERC20(market.underlying).safeTransfer(msg.sender, underlyingAmount);

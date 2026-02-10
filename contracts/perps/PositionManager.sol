@@ -360,7 +360,8 @@ contract PositionManager is ReentrancyGuard, Ownable {
     }
     
     function _updateFunding(address _token) internal {
-        if (block.timestamp - lastFundingTimes[_token] < FUNDING_INTERVAL) return;
+        uint256 timeSinceLast = block.timestamp - lastFundingTimes[_token];
+        if (timeSinceLast < FUNDING_INTERVAL) return;
         
         uint256 longOI = longOpenInterest[_token];
         uint256 shortOI = shortOpenInterest[_token];
@@ -370,18 +371,23 @@ contract PositionManager is ReentrancyGuard, Ownable {
             return;
         }
         
+        // Calculate how many funding periods have passed
+        uint256 periods = timeSinceLast / FUNDING_INTERVAL;
+        
         // Funding rate based on OI imbalance
-        int256 fundingRate;
+        int256 fundingRatePerPeriod;
         if (longOI > shortOI) {
-            fundingRate = int256(((longOI - shortOI) * fundingRateFactor) / (longOI + shortOI));
+            fundingRatePerPeriod = int256(((longOI - shortOI) * fundingRateFactor) / (longOI + shortOI));
         } else {
-            fundingRate = -int256(((shortOI - longOI) * fundingRateFactor) / (longOI + shortOI));
+            fundingRatePerPeriod = -int256(((shortOI - longOI) * fundingRateFactor) / (longOI + shortOI));
         }
         
-        cumulativeFundingRates[_token] += fundingRate;
+        // Apply funding for all passed periods
+        int256 totalFunding = fundingRatePerPeriod * int256(periods);
+        cumulativeFundingRates[_token] += totalFunding;
         lastFundingTimes[_token] = block.timestamp;
         
-        emit FundingUpdated(_token, fundingRate);
+        emit FundingUpdated(_token, totalFunding);
     }
     
     function _validatePosition(Position storage _position, uint256 _currentPrice) internal view {

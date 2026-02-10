@@ -161,6 +161,7 @@ contract PerpVault is ERC20, ReentrancyGuard, Ownable {
             vaultTokens = (usdValue * totalSupply()) / totalAUM;
         }
         
+        require(vaultTokens > 0, "Deposit too small");
         require(vaultTokens >= _minVaultTokens, "Slippage");
         
         asset.totalDeposited += _amount;
@@ -218,13 +219,17 @@ contract PerpVault is ERC20, ReentrancyGuard, Ownable {
      * @notice Claim accumulated trading fees
      */
     function claimFees() external updateFees(msg.sender) returns (uint256 amount) {
-        amount = unclaimedFees[msg.sender];
-        if (amount == 0) return 0;
+        uint256 feeUsd = unclaimedFees[msg.sender];
+        if (feeUsd == 0) return 0;
         
         unclaimedFees[msg.sender] = 0;
         
         // Pay in stablecoin (first stable in list)
+        // Convert from USD (30 decimals) to token decimals (typically 18)
         address stableToken = _getStableToken();
+        uint256 stablePrice = _getPrice(stableToken);
+        amount = (feeUsd * 1e18) / stablePrice; // Convert USD to token amount
+        
         IERC20(stableToken).safeTransfer(msg.sender, amount);
         
         emit FeesClaimed(msg.sender, amount);
