@@ -283,6 +283,13 @@ contract PositionManager is ReentrancyGuard, Ownable {
     /**
      * @notice Liquidate an underwater position
      * @param _positionKey Position to liquidate
+     * @dev KNOWN LIMITATION: Liquidations can be front-run by MEV bots.
+     *      This is a common pattern in DeFi protocols (Aave, Compound, GMX).
+     *      Mitigation options not implemented due to complexity vs benefit:
+     *      - Commit-reveal scheme: Adds latency, poor UX for liquidators
+     *      - Private mempool (Flashbots): Requires off-chain infrastructure
+     *      - Keeper network: Centralization concerns
+     *      The current design incentivizes quick liquidation which benefits protocol health.
      */
     function liquidate(bytes32 _positionKey) external nonReentrant {
         Position storage position = positions[_positionKey];

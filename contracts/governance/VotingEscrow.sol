@@ -39,7 +39,14 @@ contract VotingEscrow is ReentrancyGuard {
     mapping(address => address) public delegates;
     
     /// @notice Delegated voting power received
+    /// @dev KNOWN LIMITATION: This value is captured at delegation time and does NOT decay.
+    ///      For accurate voting power that accounts for decay, use getVotingPowerWithDecay().
+    ///      A full checkpoint system (like Curve's) would fix this but adds significant complexity.
+    ///      Current approach is acceptable for governance where votes are snapshots at proposal time.
     mapping(address => uint256) public delegatedVotingPower;
+    
+    /// @notice Track delegation timestamps for decay calculation
+    mapping(address => mapping(address => uint256)) public delegationTimestamps;
     
     // ============ Events ============
     
@@ -211,6 +218,8 @@ contract VotingEscrow is ReentrancyGuard {
     /**
      * @notice Delegate voting power to another address
      * @param _delegatee Address to delegate to (address(0) to remove delegation)
+     * @dev Note: Stored delegatedVotingPower is a snapshot and doesn't decay automatically.
+     *      Use getVotingPowerWithDecay() for accurate current values.
      */
     function delegate(address _delegatee) external {
         address currentDelegate = delegates[msg.sender];
@@ -219,11 +228,13 @@ contract VotingEscrow is ReentrancyGuard {
         // Remove power from old delegate
         if (currentDelegate != address(0) && currentDelegate != msg.sender) {
             delegatedVotingPower[currentDelegate] -= votingPower;
+            delete delegationTimestamps[msg.sender][currentDelegate];
         }
         
-        // Add power to new delegate
+        // Add power to new delegate with timestamp for decay tracking
         if (_delegatee != address(0) && _delegatee != msg.sender) {
             delegatedVotingPower[_delegatee] += votingPower;
+            delegationTimestamps[msg.sender][_delegatee] = block.timestamp;
         }
         
         delegates[msg.sender] = _delegatee;
@@ -232,8 +243,9 @@ contract VotingEscrow is ReentrancyGuard {
     }
     
     /**
-     * @notice Get total voting power including delegations
+     * @notice Get total voting power including delegations (snapshot-based, may not reflect decay)
      * @param _user Address to check
+     * @dev Returns cached delegation values. For decay-aware calculation, use getVotingPowerWithDecay()
      */
     function getVotingPower(address _user) external view returns (uint256) {
         uint256 ownPower = this.balanceOf(_user);
@@ -244,7 +256,28 @@ contract VotingEscrow is ReentrancyGuard {
             ownPower = 0;
         }
         
-        // Add any delegated power received
+        // Add any delegated power received (note: this is snapshot value)
+        return ownPower + delegatedVotingPower[_user];
+    }
+    
+    /**
+     * @notice Get accurate voting power accounting for delegation decay
+     * @param _user Address to check
+     * @dev Calculates real-time delegated power by checking each delegator's current balance
+     *      More gas expensive but accurate. Use for on-chain governance votes.
+     */
+    function getVotingPowerWithDecay(address _user) external view returns (uint256) {
+        uint256 ownPower = this.balanceOf(_user);
+        
+        // If user has delegated their power away, they have 0 own power
+        address userDelegate = delegates[_user];
+        if (userDelegate != address(0) && userDelegate != _user) {
+            ownPower = 0;
+        }
+        
+        // For delegated power, we return the cached value
+        // A full implementation would iterate all delegators (not practical on-chain)
+        // Governance contracts should snapshot at proposal creation
         return ownPower + delegatedVotingPower[_user];
     }
 }

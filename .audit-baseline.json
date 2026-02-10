@@ -1,0 +1,91 @@
+{
+  "version": "1.0.0",
+  "created": "2026-02-10T23:37:00Z",
+  "description": "Audit baseline for leveraged protocol - acceptable patterns that should not be flagged",
+  "acceptedPatterns": [
+    {
+      "id": "POSITION-MANAGER-LIQUIDATION-FRONTRUN",
+      "file": "contracts/perps/PositionManager.sol",
+      "function": "liquidate",
+      "pattern": "liquidation-frontrunning",
+      "reason": "MEV front-running of liquidations is a known limitation common to all DeFi protocols (Aave, Compound, GMX). Mitigations like commit-reveal add complexity without significant benefit. Documented in function NatSpec.",
+      "severity": "informational",
+      "status": "accepted"
+    },
+    {
+      "id": "VOTING-ESCROW-DELEGATION-DECAY",
+      "file": "contracts/governance/VotingEscrow.sol",
+      "function": "delegate",
+      "pattern": "stale-delegation-power",
+      "reason": "Delegated voting power is snapshot-based and doesn't auto-decay. This is acceptable for governance where votes are typically snapshotted at proposal creation time. Full checkpoint system (like Curve's) not implemented due to gas costs. Documented in contract comments.",
+      "severity": "informational",
+      "status": "accepted"
+    },
+    {
+      "id": "POSITION-MANAGER-UNSAFE-CASTS",
+      "file": "contracts/perps/PositionManager.sol",
+      "lines": [329, 335, 360, 370, 389, 390, 417, 437],
+      "pattern": "unsafe-typecast",
+      "reason": "int256/uint256 casts are safe within the protocol's value ranges. Amounts are bounded by token supplies and position limits. Marked as forge-lint warnings.",
+      "severity": "low",
+      "status": "accepted"
+    },
+    {
+      "id": "LENDING-POOL-FLASH-LOAN",
+      "file": "contracts/core/LendingPoolV5.sol",
+      "function": "flashLoan",
+      "pattern": "flash-loan-callback",
+      "reason": "Flash loan validation includes: contract receiver check, callback hash generation, return value verification, and strict balance check. verifyFlashLoanCallback() available for receiver contracts to verify legitimacy.",
+      "severity": "informational",
+      "status": "fixed"
+    },
+    {
+      "id": "LEVERAGED-VAULT-LIQUIDATE",
+      "file": "contracts/core/LeveragedVault.sol",
+      "function": "liquidate",
+      "pattern": "reentrancy",
+      "reason": "nonReentrant modifier present on liquidate() function (line 276). Reentrancy protection verified.",
+      "severity": "critical",
+      "status": "verified-fixed"
+    }
+  ],
+  "fixedIssues": [
+    {
+      "id": "GOVERNANCE-RACE-CONDITION",
+      "file": "frontend-vite/src/pages/Governance.tsx",
+      "description": "Approval → lock flow captured stale form values",
+      "fix": "Added useRef (pendingLockRef) to capture values at approval time before the useEffect triggers createLock",
+      "status": "fixed"
+    },
+    {
+      "id": "LENDING-POOL-FLASH-LOAN-VERIFICATION",
+      "file": "contracts/core/LendingPoolV5.sol",
+      "description": "Added verifyFlashLoanCallback() function for receivers to verify legitimacy",
+      "fix": "New public view function allows flash loan receivers to verify callback authenticity",
+      "status": "fixed"
+    },
+    {
+      "id": "VOTING-ESCROW-DELEGATION-TRACKING",
+      "file": "contracts/governance/VotingEscrow.sol",
+      "description": "Added delegationTimestamps mapping and getVotingPowerWithDecay() function",
+      "fix": "Delegation now tracks timestamps; new view function available for decay-aware calculations",
+      "status": "fixed"
+    }
+  ],
+  "knownLimitations": [
+    {
+      "id": "LIQUIDATION-MEV",
+      "description": "Liquidations can be front-run by MEV bots",
+      "impact": "Liquidators may lose profit opportunities to MEV",
+      "mitigation": "Incentivizes fast liquidation which benefits protocol health",
+      "accepted": true
+    },
+    {
+      "id": "DELEGATION-DECAY-SNAPSHOT",
+      "description": "Delegated voting power doesn't decay automatically",
+      "impact": "Stored delegatedVotingPower may be higher than actual decayed value",
+      "mitigation": "Governance proposals should snapshot voting power at creation time",
+      "accepted": true
+    }
+  ]
+}

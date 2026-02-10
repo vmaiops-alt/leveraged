@@ -93,6 +93,19 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
     bool private _flashLoanActive;
     bytes32 private _expectedCallbackHash;
     
+    /// @notice Allow receivers to verify they were called legitimately
+    /// @dev Receivers SHOULD call this to prevent unauthorized calls
+    function verifyFlashLoanCallback(
+        address receiver,
+        uint256 amount,
+        uint256 fee,
+        address initiator
+    ) external view returns (bool) {
+        if (!_flashLoanActive) return false;
+        bytes32 expectedHash = keccak256(abi.encodePacked(receiver, amount, fee, initiator));
+        return expectedHash == _expectedCallbackHash;
+    }
+    
     // ============ Events ============
     
     event Deposited(address indexed user, uint256 amount, uint256 shares);
@@ -454,6 +467,12 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
      * @param receiver Contract that will receive and repay the loan
      * @param amount Amount to borrow
      * @param params Arbitrary data to pass to receiver
+     * @dev Security measures:
+     *      1. Receiver must be a contract (extcodesize check)
+     *      2. Callback hash generated for receiver verification via verifyFlashLoanCallback()
+     *      3. Return value from executeOperation must be true
+     *      4. Full repayment with fee verified via balance check
+     *      5. Reentrancy protection via nonReentrant and _flashLoanActive flag
      */
     function flashLoan(
         address receiver,
@@ -463,7 +482,7 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
         require(!_flashLoanActive, "Flash loan in progress");
         require(amount > 0, "Zero amount");
         
-        // Verify receiver is a contract (not EOA)
+        // Verify receiver is a contract (not EOA) - prevents accidental loss
         uint256 codeSize;
         assembly {
             codeSize := extcodesize(receiver)
@@ -478,13 +497,13 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
         uint256 fee = (amount * FLASH_LOAN_FEE) / BPS_DENOMINATOR;
         uint256 balanceBefore = asset.balanceOf(address(this));
         
-        // Generate expected callback hash for verification
+        // Generate expected callback hash - receivers can verify via verifyFlashLoanCallback()
         _expectedCallbackHash = keccak256(abi.encodePacked(receiver, amount, fee, msg.sender));
         
         // Transfer to receiver
         asset.safeTransfer(receiver, amount);
         
-        // Call receiver and verify return value
+        // Call receiver and verify return value indicates successful execution
         bool success = IFlashLoanReceiver(receiver).executeOperation(
             address(asset),
             amount,
@@ -494,10 +513,10 @@ contract LendingPoolV5 is ReentrancyGuard, Pausable {
         );
         require(success, "Flash loan execution failed");
         
-        // Clear callback hash
+        // Clear callback hash after execution completes
         _expectedCallbackHash = bytes32(0);
         
-        // Verify repayment
+        // Strict repayment verification - must have original balance plus fee
         uint256 balanceAfter = asset.balanceOf(address(this));
         require(balanceAfter >= balanceBefore + fee, "Flash loan not repaid");
         
