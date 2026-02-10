@@ -1,0 +1,177 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+/**
+ * @title VotingEscrow
+ * @notice Simplified vote-escrowed LVG (veLVG) for governance
+ * @dev Lock LVG to get voting power that decays linearly
+ */
+contract VotingEscrow is ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    
+    // ============ Structs ============
+    
+    struct Lock {
+        uint256 amount;     // Locked LVG amount
+        uint256 end;        // Lock end timestamp
+        uint256 start;      // Lock start timestamp
+    }
+    
+    // ============ State Variables ============
+    
+    IERC20 public immutable token;
+    uint256 public totalLocked;
+    mapping(address => Lock) public locks;
+    
+    // ============ Constants ============
+    
+    uint256 public constant WEEK = 7 days;
+    uint256 public constant MAX_LOCK = 4 * 365 days;
+    uint256 public constant MIN_LOCK = WEEK;
+    
+    // ============ Events ============
+    
+    event Deposited(address indexed user, uint256 amount, uint256 lockEnd);
+    event Withdrawn(address indexed user, uint256 amount);
+    event LockExtended(address indexed user, uint256 newEnd);
+    event AmountIncreased(address indexed user, uint256 addedAmount);
+    
+    // ============ Errors ============
+    
+    error ZeroAmount();
+    error LockExists();
+    error NoLock();
+    error LockNotExpired();
+    error LockExpired();
+    error InvalidLockTime();
+    
+    // ============ Constructor ============
+    
+    constructor(address _token) {
+        token = IERC20(_token);
+    }
+    
+    // ============ Lock Functions ============
+    
+    /**
+     * @notice Create a new lock
+     */
+    function createLock(uint256 _amount, uint256 _unlockTime) external nonReentrant {
+        if (_amount == 0) revert ZeroAmount();
+        if (locks[msg.sender].amount > 0) revert LockExists();
+        
+        uint256 unlockTime = (_unlockTime / WEEK) * WEEK;
+        if (unlockTime <= block.timestamp + MIN_LOCK) revert InvalidLockTime();
+        if (unlockTime > block.timestamp + MAX_LOCK) revert InvalidLockTime();
+        
+        token.safeTransferFrom(msg.sender, address(this), _amount);
+        
+        locks[msg.sender] = Lock({
+            amount: _amount,
+            end: unlockTime,
+            start: block.timestamp
+        });
+        
+        totalLocked += _amount;
+        
+        emit Deposited(msg.sender, _amount, unlockTime);
+    }
+    
+    /**
+     * @notice Increase locked amount
+     */
+    function increaseAmount(uint256 _amount) external nonReentrant {
+        if (_amount == 0) revert ZeroAmount();
+        
+        Lock storage lock = locks[msg.sender];
+        if (lock.amount == 0) revert NoLock();
+        if (lock.end <= block.timestamp) revert LockExpired();
+        
+        token.safeTransferFrom(msg.sender, address(this), _amount);
+        lock.amount += _amount;
+        totalLocked += _amount;
+        
+        emit AmountIncreased(msg.sender, _amount);
+    }
+    
+    /**
+     * @notice Extend lock time
+     */
+    function extendLock(uint256 _newUnlockTime) external nonReentrant {
+        Lock storage lock = locks[msg.sender];
+        if (lock.amount == 0) revert NoLock();
+        if (lock.end <= block.timestamp) revert LockExpired();
+        
+        uint256 newEnd = (_newUnlockTime / WEEK) * WEEK;
+        if (newEnd <= lock.end) revert InvalidLockTime();
+        if (newEnd > block.timestamp + MAX_LOCK) revert InvalidLockTime();
+        
+        lock.end = newEnd;
+        
+        emit LockExtended(msg.sender, newEnd);
+    }
+    
+    /**
+     * @notice Withdraw after lock expires
+     */
+    function withdraw() external nonReentrant {
+        Lock storage lock = locks[msg.sender];
+        if (lock.amount == 0) revert NoLock();
+        if (lock.end > block.timestamp) revert LockNotExpired();
+        
+        uint256 amount = lock.amount;
+        totalLocked -= amount;
+        
+        delete locks[msg.sender];
+        
+        token.safeTransfer(msg.sender, amount);
+        
+        emit Withdrawn(msg.sender, amount);
+    }
+    
+    // ============ View Functions ============
+    
+    /**
+     * @notice Get voting power (linear decay)
+     * @dev Power = amount * (timeRemaining / maxLockTime)
+     */
+    function balanceOf(address _user) external view returns (uint256) {
+        Lock storage lock = locks[_user];
+        if (lock.amount == 0 || lock.end <= block.timestamp) {
+            return 0;
+        }
+        
+        uint256 timeRemaining = lock.end - block.timestamp;
+        return (lock.amount * timeRemaining) / MAX_LOCK;
+    }
+    
+    /**
+     * @notice Get total voting power
+     */
+    function totalSupply() external view returns (uint256) {
+        // Simplified: return total locked weighted by average remaining time
+        // In production, iterate or maintain separate state
+        return totalLocked / 2; // Rough estimate
+    }
+    
+    /**
+     * @notice Get lock details
+     */
+    function getLock(address _user) external view returns (uint256 amount, uint256 end, uint256 start) {
+        Lock storage lock = locks[_user];
+        return (lock.amount, lock.end, lock.start);
+    }
+    
+    /**
+     * @notice Time until lock expires
+     */
+    function timeToUnlock(address _user) external view returns (uint256) {
+        Lock storage lock = locks[_user];
+        if (lock.end <= block.timestamp) return 0;
+        return lock.end - block.timestamp;
+    }
+}
