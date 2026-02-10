@@ -6,163 +6,329 @@ This workflow MUST be followed for every new task/job in this project. No except
 
 ---
 
-## Phase 1: Job Intake & Planning
+# 0. GLOBAL IMMUTABLE RULES
 
-### 1.1 Job Posted
+## 0.1 NO MOCK DATA
+- Mock data is **strictly forbidden**
+- No fake API responses
+- No placeholder data
+- No simulated logic
+- No "temporary implementation"
+- No hardcoded demo values
+
+**If real API credentials are missing:**
+→ Stop and request them.
+
+**If API is unreachable:**
+→ Implement a proper interface layer and clearly document dependency, but **never fabricate responses**.
+
+## 0.2 NO PLACEHOLDER LOGIC
+
+**Forbidden patterns:**
+- `TODO`
+- `FIXME`
+- `temporary`
+- `sample`
+- `fake`
+- `stub` (unless clearly defined interface contract)
+- console-only debug hacks
+- unfinished branches
+
+All logic must be **production-intent**.
+
+## 0.3 FILE TREE MUST BE DEFINED FIRST
+
+Before writing any code:
+- Define full directory structure
+- Define modules
+- Define interfaces
+- Define dependencies
+- Define runtime requirements
+- Define environment variables
+
+**No coding before architecture approval.**
+
+## 0.4 TESTS ARE MANDATORY
+
+Every module must include:
+- Unit tests
+- Edge case tests
+- Failure tests
+- Input validation tests
+
+**Project is incomplete if tests are missing.**
+
+## 0.5 SELF-CRIT REQUIRED AFTER EACH PHASE
+
+After each major phase you must:
+- Analyze code quality
+- Analyze security risks
+- Analyze performance bottlenecks
+- Identify edge cases
+- Identify architectural weaknesses
+
+**You must explicitly list weaknesses.**
+
+## 0.6 CONTEXT MANAGEMENT
+
+Before every major phase:
+- Summarize current system state
+- Remove irrelevant context
+- Compress memory representation
+
+**Prevent context overflow.**
+
+## 0.7 ITERATIVE BUILD LOOP
+
+You must iterate until fully verified:
+
+```
+LOOP:
+  1. Analyze current state
+  2. Detect weaknesses
+  3. Fix issues
+  4. Run tests
+  5. Re-evaluate
+  6. Repeat
+```
+
+**Stop only when:**
+- All tests pass
+- No warnings
+- No unused imports
+- No dead code
+- No mock data
+- No broken integrations
+
+---
+
+# EXECUTION PHASES
+
+## Phase 1: PROJECT DEFINITION
+
+Before coding:
+1. Define exact objective
+2. Define what "done" means
+3. Define scope boundaries
+4. Define constraints (language, framework, deployment target)
+5. Define external dependencies
+6. Define security requirements
+7. Define performance requirements
+
+**Do not proceed without clarity.**
+
+## Phase 2: ARCHITECTURE DESIGN
+
+You must produce:
+- System component breakdown
+- Data flow description
+- Module responsibilities
+- Interface contracts
+- Error handling strategy
+- Configuration strategy
+- Logging strategy
+
+**No implementation before architecture is complete.**
+
+## Phase 3: FILE STRUCTURE
+
+Generate full file tree including:
+- `src/`
+- `modules/`
+- `services/`
+- `api/`
+- `utils/`
+- `config/`
+- `tests/`
+- `scripts/`
+- `docs/`
+- environment template
+- package manager config
+- README
+
+**Must be explicit.**
+
+## Phase 4: MODULE IMPLEMENTATION
+
+For each module:
+1. Implement clean production-grade code
+2. Implement proper error handling
+3. Implement logging
+4. Validate types
+5. Validate imports
+6. Add tests
+7. Run static analysis
+8. Self-review
+
+**Only then proceed to next module.**
+
+## Phase 5: FULL INTEGRATION TESTING
+
+After all modules:
+- Test complete workflow
+- Simulate failure cases
+- Validate API calls
+- Validate data persistence
+- Validate concurrency behavior
+- Validate performance
+- Validate memory usage
+
+## Phase 6: SECURITY AUDIT
+
+Mandatory checks:
+- Input validation everywhere
+- No hardcoded secrets
+- Proper env variable usage
+- SQL injection prevention
+- XSS prevention
+- Authentication enforcement
+- Authorization validation
+- Rate limiting if needed
+- Dependency vulnerability awareness
+- Safe error messages
+
+## Phase 7: PERFORMANCE REVIEW
+
+Must analyze:
+- Inefficient loops
+- Blocking calls
+- Redundant database queries
+- Caching opportunities
+- Scalability risks
+- Async optimization
+- Memory inefficiencies
+
+## Phase 8: DEPLOYMENT READINESS
+
+Generate:
+- `.env.example`
+- Installation instructions
+- Setup script
+- Run script
+- Deployment instructions
+- Dockerfile (if applicable)
+- CI/CD recommendation
+- Production configuration notes
+
+## Phase 9: FINAL VALIDATION
+
+Before marking complete, answer:
+1. What could break in production?
+2. What scales poorly?
+3. What assumptions were made?
+4. What are known weaknesses?
+5. What technical debt exists?
+6. What would a senior engineer criticize?
+
+**If meaningful critique is missing → re-analyze and improve.**
+
+---
+
+# STRICT FAILURE CONDITIONS
+
+**Immediately stop and flag if:**
+- Mock data detected
+- Tests failing
+- Missing external credentials
+- Circular dependency detected
+- Context overflow risk
+- Security vulnerability detected
+- Incomplete module
+- Broken integration
+
+---
+
+# ADVANCED RULE FOR LARGE PROJECTS (>5000 LOC)
+
+Split into milestones:
+- Each milestone must be independently testable
+- Independently runnable
+- Independently verifiable
+
+**Never attempt massive monolithic generation.**
+
+---
+
+# EXECUTION LOOP TEMPLATE
+
+```python
+while not production_ready:
+    analyze()
+    detect_weaknesses()
+    implement_fixes()
+    run_tests()
+    evaluate_security()
+    evaluate_performance()
+    summarize_state()
+    compress_context()
+```
+
+---
+
+# JOB INTAKE WORKFLOW
+
+## Step 1: Job Posted
 - New job/task is posted in chat
 - **DO NOT START WORK YET**
 
-### 1.2 CEO Distribution
+## Step 2: CEO Distribution
 - **Harvey (CEO)** receives the job
 - Harvey analyzes requirements and distributes to appropriate Team Leads:
   - **Alex** - Tech Lead (Development)
   - **Maya** - Marketing Lead
-  - **Diana** - Design Lead  
+  - **Diana** - Design Lead
   - **Ben** - Business Lead
 
-### 1.3 Team Lead Assignment
+## Step 3: Team Lead Assignment
 - Team Leads break down the job into tasks
 - Assign tasks to team members:
   - **Dev Team:** Sarah (Frontend), Marcus (Backend), Nina (Security), Dev (QA)
-  - **Marketing:** Content writers, Social media
-  - **Design:** UI/UX designers
-  - **Business:** Analysts, Operations
 
-### 1.4 Board Task Creation
+## Step 4: Board Task Creation
 - ALL tasks are written to the board
 - Each task has: title, assignee, priority, status="offen"
-- Use: `POST http://localhost:3000/api/tasks`
 
-### 1.5 Plan Posted to Chat
-- Post the complete plan to chat:
-  ```
-  📋 **JOB PLAN: [Job Name]**
-  
-  **Tasks:**
-  1. [Task 1] - Assigned to [Person]
-  2. [Task 2] - Assigned to [Person]
-  ...
-  
-  **Estimated Time:** X hours
-  **Dependencies:** [list any]
-  
-  ⏳ Waiting for GO...
-  ```
+## Step 5: Plan Posted to Chat
+- Post the complete plan to chat with all tasks listed
+- Include estimated time and dependencies
 
-### 1.6 Wait for GO
+## Step 6: Wait for GO
 - **DO NOT PROCEED** until user explicitly says "GO" or "Start"
 - This is a hard stop - no work begins without approval
 
----
+## Step 7: Execute with Phases
+- Follow Phase 1-9 for each major component
+- Update board in real-time
+- Tasks complete → "review" (NOT "done")
 
-## Phase 2: Execution
+## Step 8: QA Audit
+- QA1 scans frontend
+- QA2 scans backend
+- Code must pass: 0 critical, 0 errors
 
-### 2.1 Work Begins
-- On "GO", all assigned tasks start
-- Update task status to "in arbeit" (in progress)
-
-### 2.2 Real-time Progress Tracking
-- Update board after EVERY significant change
-- Use webhook: `curl -X POST http://localhost:3000/api/tasks/{id} -d '{"status":"..."}'`
-- Post progress updates to chat periodically
-
-### 2.3 Task Completion
-- When code/work is done, task moves to **"review"** (NOT "done"!)
-- Update: `{"status": "review"}`
-
----
-
-## Phase 3: Review & QA
-
-### 3.1 QA Agent Team Audit
-- **QA1** scans frontend code (React, TypeScript)
-- **QA2** scans backend code (Solidity contracts)
-- Both run automatically when tasks enter "review"
-
-### 3.2 Audit Criteria
-Code must pass:
-- ✅ Zero CRITICAL issues
-- ✅ Zero ERROR issues
-- ⚠️ Warnings acceptable (document them)
-- ℹ️ Info items logged
-
-### 3.3 Fix Loop
-If issues found:
-1. QA reports issues
-2. Developer fixes
-3. Rescan
-4. Repeat until clean
-
-### 3.4 Audit Passed
+## Step 9: Done Status
 - Only after QA approval → task moves to "done"
-- Update: `{"status": "done"}`
 
----
-
-## Phase 4: Pre-Deployment
-
-### 4.1 User Approval Required
+## Step 10: Deployment
 - Task is "done" but **NOT DEPLOYED**
 - Wait for user to say "deploy"
-
-### 4.2 Security Review
-- **Nina (Security)** + Security Dev Team perform final review:
-  - Reentrancy checks
-  - Access control verification
-  - Input validation
-  - Economic attack vectors
-  - Gas optimization review
-
-### 4.3 Deployment Checklist
-- [ ] All tests pass
-- [ ] QA audit clean
-- [ ] Security review passed
-- [ ] User approved deployment
-- [ ] Backup/rollback plan ready
+- Security team performs final review
+- Only then execute deployment
 
 ---
 
-## Phase 5: Deployment
-
-### 5.1 Deploy
-- Only after ALL Phase 4 checks pass
-- Execute deployment scripts
-- Verify on-chain
-
-### 5.2 Post-Deploy Verification
-- Check live site/contracts
-- Monitor for issues
-- Report completion
-
----
-
-## Status Flow
+# STATUS FLOW
 
 ```
 offen → in arbeit → review → [QA Loop] → done → [Security] → deployed
 ```
 
-## Board API Reference
-
-```bash
-# Create task
-curl -X POST http://localhost:3000/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"projectId":"proj-7d79f857","title":"...","assignee":"...","priority":"high","status":"offen"}'
-
-# Update task status
-curl -X PATCH http://localhost:3000/api/tasks/{taskId} \
-  -H "Content-Type: application/json" \
-  -d '{"status":"in arbeit"}'
-
-# Post to chat
-curl -X POST http://localhost:3000/api/response \
-  -H "Content-Type: application/json" \
-  -d '{"projectId":"proj-7d79f857","message":"..."}'
-```
-
 ---
 
-**⚠️ VIOLATION OF THIS WORKFLOW IS NOT ALLOWED**
+**⚠️ VIOLATION OF THESE RULES IS NOT ALLOWED**
 
-If you receive a new job and start working without following this process, STOP immediately and restart from Phase 1.
+You must behave as a disciplined senior engineer.
+Speed is irrelevant. Stability is mandatory.
+No shortcuts. No pretending. No hallucinated completeness.
+
+**Only verified, testable, production-intent systems are acceptable.**
