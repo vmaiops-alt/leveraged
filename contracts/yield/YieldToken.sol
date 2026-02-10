@@ -104,7 +104,7 @@ contract YieldToken is ERC20, ERC20Permit, Ownable {
         if (_user == address(0)) return;
         
         uint256 balance = balanceOf(_user);
-        if (balance > 0) {
+        if (balance > 0 && yieldPerToken >= userYieldPerToken[_user]) {
             uint256 pending = (balance * (yieldPerToken - userYieldPerToken[_user])) / 1e18;
             unclaimedYield[_user] += pending;
         }

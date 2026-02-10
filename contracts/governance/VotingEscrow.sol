@@ -60,8 +60,11 @@ contract VotingEscrow is ReentrancyGuard {
     /**
      * @notice Create a new lock
      */
+    uint256 public constant MIN_LOCK_AMOUNT = 1e18; // 1 token minimum
+    
     function createLock(uint256 _amount, uint256 _unlockTime) external nonReentrant {
         if (_amount == 0) revert ZeroAmount();
+        if (_amount < MIN_LOCK_AMOUNT) revert ZeroAmount(); // Too small
         if (locks[msg.sender].amount > 0) revert LockExists();
         
         uint256 unlockTime = (_unlockTime / WEEK) * WEEK;
